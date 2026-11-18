@@ -14,7 +14,7 @@ function poll_device(array $dev): void
 
     $oids = [OID_UPTIME];
     foreach ($metrics as $m) {
-        foreach (explode('/', $m['oid']) as $o) {
+        foreach (preg_split('#[/,]#', $m['oid']) as $o) {
             $oids[] = $o;
         }
     }
@@ -61,6 +61,21 @@ function metric_value(array $m, array $vals, int $now, bool $rebooted): ?float
             }
             return round((float)$vals[$a] / (float)$vals[$b] * $scale, 3);
 
+        case 'mem_ucd': // total, free, buffers, cached (kB): used % excluding cache
+            $o = explode(',', $m['oid']);
+            $t = (float)($vals[$o[0]] ?? 0);
+            if ($t <= 0 || !isset($vals[$o[1]])) {
+                return null;
+            }
+            $used = $t - (float)$vals[$o[1]] - (float)($vals[$o[2]] ?? 0) - (float)($vals[$o[3]] ?? 0);
+            return round(max(0.0, $used) / $t * $scale, 3);
+
+        case 'idle': // UCD ssCpuIdle -> busy %
+            if (!isset($vals[$m['oid']]) || !is_numeric($vals[$m['oid']])) {
+                return null;
+            }
+            return 100.0 - (float)$vals[$m['oid']];
+
         case 'counter':
             if (!isset($vals[$m['oid']]) || !is_numeric($vals[$m['oid']])) {
                 return null;
@@ -90,6 +105,10 @@ function metric_value(array $m, array $vals, int $now, bool $rebooted): ?float
             if ($raw === null || !is_numeric(trim($raw))) {
                 return null;
             }
-            return round((float)$raw * $scale, 6);
+            $raw = (float)$raw;
+            if ($m['kind'] === 'sensor' && $raw >= 2147483648.0) {
+                $raw -= 4294967296.0; // Gauge32 carrying a negative reading
+            }
+            return round($raw * $scale, 6);
     }
 }

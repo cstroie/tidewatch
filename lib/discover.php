@@ -6,6 +6,9 @@ require_once __DIR__ . '/snmp.php';
 const OID_SYSDESCR = '1.3.6.1.2.1.1.1.0';
 const OID_UPTIME   = '1.3.6.1.2.1.1.3.0';
 const OID_SYSNAME  = '1.3.6.1.2.1.1.5.0';
+const UCD_MEM_TOTAL = '1.3.6.1.4.1.2021.4.5.0';
+const UCD_MEM_FREE  = '1.3.6.1.4.1.2021.4.6.0';
+const UCD_MEM_OIDS  = [UCD_MEM_TOTAL, UCD_MEM_FREE, '1.3.6.1.4.1.2021.4.14.0', '1.3.6.1.4.1.2021.4.15.0'];
 
 /**
  * Walk a device and create metrics for interfaces, CPU, load, storage and sensors.
@@ -53,10 +56,14 @@ function discover_device(int $id): int
         $add('if_err', "1.3.6.1.2.1.2.2.1.20.$i", "$name out errors", 'pps', 'counter');
     }
 
-    // CPU (HOST-RESOURCES hrProcessorLoad)
+    // CPU: hrProcessorLoad per core. Index from hrProcessorFrwID, because the load column
+    // is missing for the first minute after snmpd starts. Fallback: UCD ssCpuIdle.
     $n = 0;
-    foreach (snmp_column($s, '1.3.6.1.2.1.25.3.3.1.2') as $i => $v) {
+    foreach (snmp_column($s, '1.3.6.1.2.1.25.3.3.1.1') as $i => $v) {
         $add('cpu', "1.3.6.1.2.1.25.3.3.1.2.$i", 'CPU ' . $n++, '%', 'gauge', 1, 80, 95);
+    }
+    if ($n === 0 && $s->get(['1.3.6.1.4.1.2021.11.11.0'])) {
+        $add('cpu', '1.3.6.1.4.1.2021.11.11.0', 'CPU', '%', 'idle', 1, 80, 95);
     }
     // Load average (UCD)
     foreach (snmp_column($s, '1.3.6.1.4.1.2021.10.1.5') as $i => $v) {
@@ -66,10 +73,15 @@ function discover_device(int $id): int
     // Storage (hrStorageTable): value = 100 * used / size
     $stype = snmp_column($s, '1.3.6.1.2.1.25.2.3.1.2');
     $sdesc = snmp_column($s, '1.3.6.1.2.1.25.2.3.1.3');
+    // Memory: prefer UCD (total - free - buffers - cached); hrStorage RAM counts cache as used.
+    $ucdMem = count($s->get([UCD_MEM_TOTAL, UCD_MEM_FREE])) === 2;
+    if ($ucdMem) {
+        $add('mem', implode(',', UCD_MEM_OIDS), 'Memory', '%', 'mem_ucd', 100, 85, 95);
+    }
     foreach ($stype as $i => $t) {
         $t = oid_norm($t);
         $d = $sdesc[$i] ?? "storage $i";
-        $ram  = str_ends_with($t, '25.2.1.2');
+        $ram  = str_ends_with($t, '25.2.1.2') && !$ucdMem;
         $disk = str_ends_with($t, '25.2.1.4');
         if (!$ram && !$disk) {
             continue;
@@ -82,8 +94,14 @@ function discover_device(int $id): int
     }
 
     // LM-SENSORS: temperatures (m°C) and fans (RPM)
+    // Skip unplugged/bogus probes: negative values wrap to ~4.29e9 (unsigned), or read 0.
     $tn = snmp_column($s, '1.3.6.1.4.1.2021.13.16.2.1.2');
+    $tv = $tn ? snmp_column($s, '1.3.6.1.4.1.2021.13.16.2.1.3') : [];
     foreach ($tn as $i => $name) {
+        $v = (float)($tv[$i] ?? 0);
+        if ($v <= 0 || $v > 150000) {
+            continue;
+        }
         $add('sensor', "1.3.6.1.4.1.2021.13.16.2.1.3.$i", $name, '°C', 'gauge', 0.001, 75, 90);
     }
     foreach (snmp_column($s, '1.3.6.1.4.1.2021.13.16.3.1.2') as $i => $name) {
@@ -125,6 +143,14 @@ function discover_device(int $id): int
     foreach ($m as $r) {
         if (db_val('SELECT 1 FROM metrics WHERE device_id=? AND oid=?', [$id, $r['oid']])) {
             continue;
+        }
+        if ($r['type'] === 'mem_ucd') {
+            // upgrade an older hrStorage memory metric in place, keeping its history and thresholds
+            $old = db_val("SELECT id FROM metrics WHERE device_id=? AND kind='mem' AND type='ratio'", [$id]);
+            if ($old) {
+                db_exec('UPDATE metrics SET oid=?, type=? WHERE id=?', [$r['oid'], 'mem_ucd', $old]);
+                continue;
+            }
         }
         $ins->execute([$id, $r['kind'], $r['oid'], $r['label'], $r['unit'], $r['type'], $r['scale'], $r['warn'], $r['crit']]);
         $added++;
