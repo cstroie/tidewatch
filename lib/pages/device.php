@@ -201,7 +201,7 @@ page_start($dev['name'], 'devices');
 <?php elseif ($tab === 'metrics'): ?>
   <form method="post" class="card flush" style="margin-bottom:16px">
     <?= csrf_field() ?><input type="hidden" name="act" value="metrics">
-    <div class="card-head" style="padding:14px 16px 0"><h3>All metrics</h3><div class="right"><label class="check small" title="Overview card graph"><input type="radio" name="graph" value="0" <?= array_filter($metrics, fn($m) => $m['ov_graph']) ? '' : 'checked' ?>> Overview graph: default (traffic)</label><span class="small muted">If warn &gt; crit, lower values are worse (e.g. toner).</span><button class="btn btn-sm">Save</button></div></div>
+    <div class="card-head" style="padding:14px 16px 0"><h3>All metrics</h3><div class="right"><span class="small muted">If warn &gt; crit, lower values are worse (e.g. toner).</span><button class="btn btn-sm">Save</button></div></div>
     <div class="table-wrap"><table class="tbl">
       <thead><tr><th>On</th><th>Kind</th><th>Label</th><th class="num">Last</th><th title="Gauge on the overview card (max 3)">Gauge</th><th>Min</th><th>Max</th><th title="Graph on the overview card (one)">Graph</th><th>Warn</th><th>Crit</th><th>OID</th><th></th></tr></thead>
       <tbody>

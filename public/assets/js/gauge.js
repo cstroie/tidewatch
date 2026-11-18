@@ -36,8 +36,10 @@
     var crit = num(opts.crit != null ? opts.crit : g.dataset.crit);
     var min = num(opts.min != null ? opts.min : g.dataset.min) || 0;
     var v = num(value);
-    var frac = v == null || max <= min ? 0 : Math.max(0, Math.min(1, (v - min) / (max - min)));
-    g._tw.bar.setAttribute('stroke-dashoffset', LEN * (1 - frac));
+    // negative ranges (e.g. -100..-30 dBm) fill from the right end: the bar grows with the magnitude
+    var neg = max <= 0 && min < 0;
+    var frac = v == null || max <= min ? 0 : Math.max(0, Math.min(1, neg ? (max - v) / (max - min) : (v - min) / (max - min)));
+    g._tw.bar.setAttribute('stroke-dashoffset', (neg ? -1 : 1) * LEN * (1 - frac));
     if (v == null) { g._tw.val.textContent = '—'; g._tw.unit.textContent = ''; }
     else if (unitTxt === '%') { g._tw.val.textContent = (v >= 10 ? Math.round(v) : v.toFixed(1)) + '%'; g._tw.unit.textContent = ''; }
     else {
