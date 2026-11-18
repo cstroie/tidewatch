@@ -83,7 +83,7 @@ $last = latest_values(array_column($metrics, 'id'));
 $en = fn($k) => array_values(array_filter($byKind[$k] ?? [], fn($m) => $m['enabled']));
 $ids = fn(array $ms) => implode(',', array_column($ms, 'id'));
 
-$tabs = $prom ? ['sensors' => 'Sensors', 'metrics' => 'Metrics', 'settings' => 'Settings']
+$tabs = $prom ? ['sensors' => 'Sensors', 'system' => 'System', 'metrics' => 'Metrics', 'settings' => 'Settings']
     : ['system' => 'System', 'live' => 'Live', 'interfaces' => 'Interfaces', 'sensors' => 'Sensors & supplies', 'metrics' => 'Metrics', 'settings' => 'Settings'];
 if (!isset($tabs[$tab])) {
     $tab = $prom ? 'sensors' : 'system';
@@ -98,7 +98,7 @@ page_start($dev['name'], 'devices');
 <?= flash() ?>
 <nav class="tabs"><?php foreach ($tabs as $k => $l): ?><a href="<?= $self ?>&tab=<?= $k ?>" class="<?= $k === $tab ? 'active' : '' ?>"><?= $l ?></a><?php endforeach ?></nav>
 
-<?php if ($tab === 'system'):
+<?php if ($tab === 'system' && !$prom):
     $cpu = $en('cpu'); $load = $en('load'); $mem = $en('mem'); $sto = $en('storage');
     $gauge = array_merge($mem, $sto);
 ?>
@@ -171,8 +171,8 @@ page_start($dev['name'], 'devices');
   </div>
   <?php if (!$ifs): ?><div class="card empty-state">No interfaces discovered.</div><?php endif ?>
 
-<?php elseif ($tab === 'sensors'):
-    $sens = $en('sensor'); $sup = $en('supply'); $pages = $en('pages');
+<?php elseif ($tab === 'sensors' || $tab === 'system'): // prom 'system' = load, stats, telemetry, grouped by unit
+    $sens = $tab === 'system' ? array_merge($en('cpu'), $en('custom')) : $en('sensor'); $sup = $en('supply'); $pages = $en('pages');
     $groups = [];
     foreach ($sens as $m) { $groups[$m['unit'] ?: '—'][] = $m; }
     if ($prom) { // many series per unit: split into charts of 6

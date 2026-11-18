@@ -130,6 +130,101 @@ function prom_metric_type(array $s): string
     return 'counter';
 }
 
+// ESPEasy layout: espeasy_<stat> are system stats; espeasy_device_<task>{valueName=...} are task values.
+const PROM_SYS_VALUES  = ['rssi', 'load', 'uptime', 'heap', 'mem'];            // a task holding these is telemetry
+const PROM_AUX_VALUES  = ['min', 'hour', 'day', 'week', 'lat', 'lon', 'pass', 'idx']; // clock / APRS helpers
+const PROM_QUANTITIES  = [ // valueName => [label, unit, gauge min, gauge max]
+    'temp' => ['Temperature', '°C', -20, 50], 'temperature' => ['Temperature', '°C', -20, 50],
+    'hmdt' => ['Humidity', '%', 0, 100], 'humidity' => ['Humidity', '%', 0, 100],
+    'baro' => ['Pressure', 'hPa', 950, 1050], 'pressure' => ['Pressure', 'hPa', 950, 1050],
+    'lux' => ['Light', 'lx', null, null], 'power' => ['Power', 'W', null, null], 'current' => ['Current', 'A', null, null],
+    'vcc' => ['Supply', 'V', null, null], 'voltage' => ['Voltage', 'V', null, null], 'co2' => ['CO2', 'ppm', 400, 2000],
+];
+
+/**
+ * Classify every series of a page: [key => ['kind','label','unit','gmin','gmax','task','vn']].
+ * kind: 'cpu' (device load), 'sensor' (task readings), 'custom' (system stats, telemetry and helper tasks).
+ */
+function prom_classify(array $series): array
+{
+    $tasks = [];
+    foreach ($series as $s) {
+        if (preg_match('/^espeasy_device_(.+)$/', $s['name'], $m) && isset($s['labels']['valueName'])) {
+            $tasks[$m[1]][] = strtolower($s['labels']['valueName']);
+        }
+    }
+    $out = [];
+    foreach ($series as $key => $s) {
+        [$label, $unit] = prom_describe($s);
+        $r = ['kind' => 'custom', 'label' => $label, 'unit' => $unit, 'gmin' => null, 'gmax' => null, 'task' => null, 'vn' => null];
+        if (preg_match('/^espeasy_device_(.+)$/', $s['name'], $m) && isset($s['labels']['valueName'])) {
+            $task = $m[1];
+            $vn = strtolower($s['labels']['valueName']);
+            $r['task'] = $task;
+            $r['vn'] = $vn;
+            if (!array_intersect($tasks[$task], PROM_SYS_VALUES) && !in_array($vn, PROM_AUX_VALUES, true)) {
+                $r['kind'] = 'sensor';
+                if (isset(PROM_QUANTITIES[$vn])) {
+                    [$q, $r['unit'], $r['gmin'], $r['gmax']] = PROM_QUANTITIES[$vn];
+                    $r['label'] = "$q ($task)";
+                }
+            }
+        } elseif ($s['name'] === 'espeasy_load') {
+            $r = ['kind' => 'cpu', 'label' => 'Load', 'unit' => '%'] + $r;
+        } elseif ($s['name'] === 'espeasy_wifi_rssi') {
+            $r['label'] = 'WiFi RSSI';
+            $r['unit'] = 'dBm';
+            $r['gmin'] = -100;
+            $r['gmax'] = -30;
+        }
+        $out[$key] = $r;
+    }
+    return $out;
+}
+
+/**
+ * Default overview card for a Prometheus device: [gauge keys (<=3), graph key|null].
+ * Prefers the task with the most of temperature/humidity/pressure; falls back to load and RSSI.
+ */
+function prom_card_defaults(array $cls): array
+{
+    $env = ['temp' => 1, 'temperature' => 1, 'hmdt' => 1, 'humidity' => 1, 'baro' => 1, 'pressure' => 1];
+    $score = [];
+    foreach ($cls as $c) {
+        if ($c['kind'] === 'sensor' && isset($env[$c['vn']])) {
+            $score[$c['task']] = ($score[$c['task']] ?? 0) + 1;
+        }
+    }
+    $gauges = [];
+    $graph = null;
+    if ($score) {
+        $best = array_search(max($score), $score, true); // first task with the top score
+        foreach (['temp', 'temperature', 'hmdt', 'humidity', 'baro', 'pressure'] as $vn) {
+            foreach ($cls as $k => $c) {
+                if ($c['task'] === $best && $c['vn'] === $vn) {
+                    $gauges[] = $k;
+                    $graph ??= $k;
+                }
+            }
+        }
+    }
+    foreach ($cls as $k => $c) { // fill up with other recognised readings
+        if (count($gauges) < 3 && $c['kind'] === 'sensor' && isset(PROM_QUANTITIES[$c['vn']]) && !in_array($k, $gauges, true)) {
+            $gauges[] = $k;
+            $graph ??= $k;
+        }
+    }
+    if (!$gauges) {
+        foreach (['espeasy_load', 'espeasy_wifi_rssi'] as $k) {
+            if (isset($cls[$k])) {
+                $gauges[] = $k;
+                $graph ??= $k;
+            }
+        }
+    }
+    return [array_slice($gauges, 0, 3), $graph];
+}
+
 /** Fetch and parse a device; returns the series map. */
 function prom_read(array $dev): array
 {

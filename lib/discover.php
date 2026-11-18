@@ -189,15 +189,26 @@ function discover_prom(array $dev): int
     if (!$series) {
         throw new RuntimeException('No metrics returned from ' . prom_url($dev));
     }
+    $cls = prom_classify($series);
     $added = 0;
-    $ins = db()->prepare('INSERT INTO metrics (device_id, kind, oid, label, unit, type, scale) VALUES (?,?,?,?,?,?,1)');
+    $ins = db()->prepare('INSERT INTO metrics (device_id, kind, oid, label, unit, type, scale, g_min, g_max) VALUES (?,?,?,?,?,?,1,?,?)');
     foreach ($series as $key => $s) {
         if (strlen($key) > 255 || db_val('SELECT 1 FROM metrics WHERE device_id=? AND oid=?', [$id, $key])) {
             continue;
         }
-        [$label, $unit] = prom_describe($s);
-        $ins->execute([$id, 'sensor', $key, mb_substr($label, 0, 255), $unit, prom_metric_type($s)]);
+        $c = $cls[$key];
+        $ins->execute([$id, $c['kind'], $key, mb_substr($c['label'], 0, 255), $c['unit'], prom_metric_type($s), $c['gmin'], $c['gmax']]);
         $added++;
+    }
+    // default overview card, only while the user has not chosen anything
+    if (!db_val('SELECT 1 FROM metrics WHERE device_id = ? AND (ov_gauge = 1 OR ov_graph = 1)', [$id])) {
+        [$gauges, $graph] = prom_card_defaults($cls);
+        foreach ($gauges as $k) {
+            db_exec('UPDATE metrics SET ov_gauge = 1 WHERE device_id = ? AND oid = ?', [$id, $k]);
+        }
+        if ($graph !== null) {
+            db_exec('UPDATE metrics SET ov_graph = 1 WHERE device_id = ? AND oid = ?', [$id, $graph]);
+        }
     }
     log_event('info', "Discovery: $added new metrics", $id);
     return $added;

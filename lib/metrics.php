@@ -77,7 +77,9 @@ function poll_prom(array $dev, array $metrics, int $now): void
         alert_device($dev, 'down');
         return;
     }
-    db_exec("UPDATE devices SET status='up', last_poll=? WHERE id=?", [$now, $id]);
+    $uptime = isset($series['espeasy_uptime']) ? (int)round($series['espeasy_uptime']['value'] * 6000) : null; // minutes -> 1/100 s
+    $rebooted = $uptime !== null && $dev['uptime'] !== null && $uptime < (int)$dev['uptime'];
+    db_exec("UPDATE devices SET status='up', last_poll=?, uptime=? WHERE id=?", [$now, $uptime, $id]);
     alert_device($dev, 'up');
 
     $vals = [];
@@ -90,7 +92,7 @@ function poll_prom(array $dev, array $metrics, int $now): void
         ? 'INSERT OR REPLACE INTO samples_raw (metric_id, ts, value) VALUES (?,?,?)'
         : 'REPLACE INTO samples_raw (metric_id, ts, value) VALUES (?,?,?)');
     foreach ($metrics as $m) {
-        $v = metric_value($m, $vals, $now, false);
+        $v = metric_value($m, $vals, $now, $rebooted);
         if ($v === null) {
             continue;
         }
