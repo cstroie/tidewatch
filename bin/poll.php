@@ -10,6 +10,12 @@ if (!flock($lock, LOCK_EX | LOCK_NB)) {
     exit(0);
 }
 
+// Tell the web UI whether this (CLI) PHP can fork workers; FPM may lack pcntl.
+$canFork = function_exists('pcntl_fork') ? '1' : '0';
+if (db_val("SELECT v FROM meta WHERE k='poll_pcntl'") !== $canFork) {
+    db_upsert('meta', ['k' => 'poll_pcntl', 'v' => $canFork], ['k']);
+}
+
 $now = time();
 $force = in_array('-f', $argv, true);
 $devices = array_values(array_filter(

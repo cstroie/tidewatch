@@ -8,6 +8,7 @@ foreach (['devices', 'metrics', 'samples_raw', 'samples_5m', 'samples_1h', 'even
 $lastPoll = (int)db_val('SELECT MAX(last_poll) FROM devices');
 $lastRoll = (int)db_val("SELECT v FROM meta WHERE k = 'rollup_samples_5m'");
 $dbSize = db_is_sqlite() ? @filesize(substr((string)config('db_dsn'), 7)) : null;
+$pcntl = db_val("SELECT v FROM meta WHERE k='poll_pcntl'"); // written by the CLI poller
 $root = dirname(__DIR__, 2);
 $row = fn($k, $v) => '<tr><td class="muted">' . e($k) . '</td><td>' . $v . '</td></tr>';
 page_start('Settings', 'settings');
@@ -17,7 +18,7 @@ page_start('Settings', 'settings');
   <div class="card flush"><div class="card-head" style="padding:16px 16px 0"><h3>Collector</h3></div><table class="tbl">
     <?= $row('SNMP driver', e($eff) . ($driver === 'auto' ? ' <span class="pill">auto</span>' : '')) ?>
     <?= $row('Timeout / retries', e(config('snmp_timeout')) . 's / ' . e(config('snmp_retries'))) ?>
-    <?= $row('Parallel workers', e(config('poll_workers')) . (function_exists('pcntl_fork') ? '' : ' <span class="pill pill-warn">pcntl missing: sequential</span>')) ?>
+    <?= $row('Parallel workers', e(config('poll_workers')) . ($pcntl === '0' || $pcntl === 0 ? ' <span class="pill pill-warn">pcntl missing in CLI PHP: sequential</span>' : '')) ?>
     <?= $row('Last poll', $lastPoll ? e(date('Y-m-d H:i:s', $lastPoll)) . ' <span class="muted">(' . e(fmt_ago($lastPoll)) . ')</span>' . (time() - $lastPoll > 180 ? ' <span class="pill pill-crit">cron not running?</span>' : '') : 'never') ?>
     <?= $row('Last rollup', $lastRoll ? e(date('Y-m-d H:i', $lastRoll)) : 'never') ?>
     <?= $row('Alert e-mail', config('mail_to') ? e(config('mail_to')) : '<span class="muted">disabled</span>') ?>
