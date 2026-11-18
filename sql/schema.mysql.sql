@@ -1,0 +1,62 @@
+CREATE TABLE IF NOT EXISTS devices (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(128) NOT NULL,
+  host VARCHAR(255) NOT NULL,
+  port INT NOT NULL DEFAULT 161,
+  version VARCHAR(4) NOT NULL DEFAULT '2c',
+  community VARCHAR(128),
+  v3_user VARCHAR(64), v3_level VARCHAR(16), v3_auth_proto VARCHAR(8), v3_auth_pass VARCHAR(128),
+  v3_priv_proto VARCHAR(8), v3_priv_pass VARCHAR(128),
+  poll_interval INT NOT NULL DEFAULT 60,
+  enabled TINYINT NOT NULL DEFAULT 1,
+  public TINYINT NOT NULL DEFAULT 0,
+  status VARCHAR(16) NOT NULL DEFAULT 'unknown',
+  last_poll BIGINT, sysdescr TEXT, sysname VARCHAR(255), uptime BIGINT
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS metrics (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  device_id INT NOT NULL,
+  kind VARCHAR(16) NOT NULL,
+  oid VARCHAR(255) NOT NULL,
+  label VARCHAR(255) NOT NULL,
+  unit VARCHAR(16),
+  type VARCHAR(8) NOT NULL DEFAULT 'gauge',
+  scale DOUBLE NOT NULL DEFAULT 1,
+  warn DOUBLE, crit DOUBLE,
+  enabled TINYINT NOT NULL DEFAULT 1,
+  UNIQUE KEY (device_id, oid),
+  FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS samples_raw (
+  metric_id INT NOT NULL, ts BIGINT NOT NULL, value DOUBLE,
+  PRIMARY KEY(metric_id, ts)
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS samples_5m (
+  metric_id INT NOT NULL, ts BIGINT NOT NULL, avg DOUBLE, min DOUBLE, max DOUBLE,
+  PRIMARY KEY(metric_id, ts)
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS samples_1h (
+  metric_id INT NOT NULL, ts BIGINT NOT NULL, avg DOUBLE, min DOUBLE, max DOUBLE,
+  PRIMARY KEY(metric_id, ts)
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS last_counter (
+  metric_id INT PRIMARY KEY, ts BIGINT NOT NULL, raw VARCHAR(32) NOT NULL
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS dashboards (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(128) NOT NULL, public TINYINT NOT NULL DEFAULT 0,
+  layout_json MEDIUMTEXT NOT NULL
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS alerts (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  device_id INT, metric_id INT,
+  state VARCHAR(16) NOT NULL, since BIGINT NOT NULL, notified TINYINT NOT NULL DEFAULT 0,
+  UNIQUE KEY (device_id, metric_id)
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS events (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  ts BIGINT NOT NULL, device_id INT, metric_id INT,
+  level VARCHAR(8) NOT NULL, message TEXT NOT NULL,
+  KEY idx_events_ts (ts)
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS meta (k VARCHAR(64) PRIMARY KEY, v TEXT) ENGINE=InnoDB;

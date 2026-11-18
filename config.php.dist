@@ -1,0 +1,33 @@
+<?php
+// Copy to config.php and adjust. Never commit config.php.
+return [
+    'app_name' => 'Tidewatch',
+
+    // Database: SQLite (default) or MariaDB/MySQL
+    'db_dsn'  => 'sqlite:' . __DIR__ . '/data/tidewatch.sqlite',
+    // 'db_dsn' => 'mysql:host=localhost;dbname=tidewatch;charset=utf8mb4',
+    'db_user' => null,
+    'db_pass' => null,
+
+    // Admin password hash; set with: php bin/passwd.php
+    'admin_hash' => '',
+
+    // SNMP driver: 'auto' | 'ext' | 'cli'
+    'snmp_driver'  => 'auto',
+    'snmp_timeout' => 1.0,   // seconds
+    'snmp_retries' => 1,
+
+    // Collector
+    'poll_workers' => 8,
+
+    // Retention (seconds)
+    'keep_raw' => 2 * 86400,
+    'keep_5m'  => 30 * 86400,
+    'keep_1h'  => 365 * 86400,
+
+    // Alerts by email (PHP mail()); empty 'mail_to' disables
+    'mail_to'   => '',
+    'mail_from' => 'tidewatch@localhost',
+
+    'timezone' => 'UTC',
+];
