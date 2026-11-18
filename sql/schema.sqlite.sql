@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS devices (
   public INTEGER NOT NULL DEFAULT 0,
   icon TEXT,
   status TEXT NOT NULL DEFAULT 'unknown',
-  last_poll INTEGER, sysdescr TEXT, sysname TEXT, uptime INTEGER
+  last_poll INTEGER, sysdescr TEXT, sysname TEXT, syscontact TEXT, syslocation TEXT, uptime INTEGER
 );
 CREATE TABLE IF NOT EXISTS metrics (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

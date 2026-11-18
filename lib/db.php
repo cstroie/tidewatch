@@ -72,7 +72,7 @@ function db_is_sqlite(): bool
 
 function db_migrate(PDO $pdo): void
 {
-    $version = 2;
+    $version = 3;
     $cur = 0;
     try {
         $cur = (int)$pdo->query("SELECT v FROM meta WHERE k='schema'")->fetchColumn();
@@ -92,6 +92,10 @@ function db_migrate(PDO $pdo): void
         // incremental upgrades
         if ($cur < 2) {
             $pdo->exec('ALTER TABLE devices ADD COLUMN icon ' . (db_is_sqlite() ? 'TEXT' : 'VARCHAR(16)'));
+        }
+        if ($cur < 3) {
+            $pdo->exec('ALTER TABLE devices ADD COLUMN syscontact TEXT');
+            $pdo->exec('ALTER TABLE devices ADD COLUMN syslocation TEXT');
         }
     }
     db_upsert('meta', ['k' => 'schema', 'v' => (string)$version], ['k'], $pdo);

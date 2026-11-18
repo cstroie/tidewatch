@@ -72,7 +72,7 @@ page_start('Devices', 'devices');
   <?php foreach ($devices as $d): ?>
     <tr style="<?= $d['enabled'] ? '' : 'opacity:.5' ?>">
       <td><?= device_badge($d['enabled'] ? $d : ['status' => 'unknown'] + $d, 'sm') ?></td>
-      <td><a href="app.php?p=device&id=<?= $d['id'] ?>"><b><?= e($d['name']) ?></b></a><div class="small muted" style="max-width:320px;overflow:hidden;text-overflow:ellipsis"><?= e($d['sysdescr']) ?></div></td>
+      <td><a href="app.php?p=device&id=<?= $d['id'] ?>"><b><?= e($d['name']) ?></b></a><div class="small muted" style="max-width:320px;overflow:hidden;text-overflow:ellipsis"><?= e($d['sysdescr']) ?></div><?php if (!empty($d['syslocation'])): ?><div class="small muted"><?= e($d['syslocation']) ?></div><?php endif ?></td>
       <td class="mono"><?= e($d['host']) ?><?= (int)$d['port'] !== 161 ? ':' . (int)$d['port'] : '' ?></td>
       <td>v<?= e($d['version']) ?></td>
       <td class="num"><?= (int)$d['nm'] ?></td>

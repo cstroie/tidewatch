@@ -5,7 +5,9 @@ require_once __DIR__ . '/snmp.php';
 
 const OID_SYSDESCR = '1.3.6.1.2.1.1.1.0';
 const OID_UPTIME   = '1.3.6.1.2.1.1.3.0';
-const OID_SYSNAME  = '1.3.6.1.2.1.1.5.0';
+const OID_SYSCONTACT  = '1.3.6.1.2.1.1.4.0';
+const OID_SYSNAME     = '1.3.6.1.2.1.1.5.0';
+const OID_SYSLOCATION = '1.3.6.1.2.1.1.6.0';
 const UCD_MEM_TOTAL = '1.3.6.1.4.1.2021.4.5.0';
 const UCD_MEM_FREE  = '1.3.6.1.4.1.2021.4.6.0';
 // ssCpuRawIdle first, then user, nice, system, wait, interrupt, softIRQ
@@ -24,12 +26,12 @@ function discover_device(int $id): int
         throw new InvalidArgumentException("No device $id");
     }
     $s = snmp_open($dev);
-    $sys = $s->get([OID_SYSDESCR, OID_SYSNAME, OID_UPTIME]);
+    $sys = $s->get([OID_SYSDESCR, OID_SYSNAME, OID_SYSCONTACT, OID_SYSLOCATION, OID_UPTIME]);
     if (!$sys) {
         throw new RuntimeException('No SNMP response');
     }
-    db_exec('UPDATE devices SET sysdescr=?, sysname=?, uptime=? WHERE id=?',
-        [$sys[OID_SYSDESCR] ?? null, $sys[OID_SYSNAME] ?? null, (int)($sys[OID_UPTIME] ?? 0), $id]);
+    db_exec('UPDATE devices SET sysdescr=?, sysname=?, syscontact=?, syslocation=?, uptime=? WHERE id=?',
+        [$sys[OID_SYSDESCR] ?? null, $sys[OID_SYSNAME] ?? null, $sys[OID_SYSCONTACT] ?? null, $sys[OID_SYSLOCATION] ?? null, (int)($sys[OID_UPTIME] ?? 0), $id]);
 
     $m = [];
     $add = function (string $kind, string $oid, string $label, ?string $unit, string $type = 'gauge', float $scale = 1, ?float $warn = null, ?float $crit = null) use (&$m) {

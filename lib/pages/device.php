@@ -83,6 +83,8 @@ page_start($dev['name'], 'devices');
     $gauge = array_merge($mem, $sto);
 ?>
   <?php if ($dev['sysdescr']): ?><p class="muted small" style="margin-top:-6px"><?= e($dev['sysdescr']) ?></p><?php endif ?>
+  <?php $info = array_filter(['Hostname' => $dev['sysname'] ?? '', 'Location' => $dev['syslocation'] ?? '', 'Contact' => $dev['syscontact'] ?? '']); ?>
+  <?php if ($info): ?><p class="small" style="margin-top:-6px"><?php foreach ($info as $k => $v): ?><span class="muted"><?= e($k) ?></span> <?= e($v) ?> &nbsp; <?php endforeach ?></p><?php endif ?>
   <?php if ($cpu || $gauge): ?>
   <div class="card" style="margin-bottom:16px">
     <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(110px,1fr));text-align:center">

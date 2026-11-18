@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS devices (
   public TINYINT NOT NULL DEFAULT 0,
   icon VARCHAR(16),
   status VARCHAR(16) NOT NULL DEFAULT 'unknown',
-  last_poll BIGINT, sysdescr TEXT, sysname VARCHAR(255), uptime BIGINT
+  last_poll BIGINT, sysdescr TEXT, sysname VARCHAR(255), syscontact TEXT, syslocation TEXT, uptime BIGINT
 ) ENGINE=InnoDB;
 CREATE TABLE IF NOT EXISTS metrics (
   id INT AUTO_INCREMENT PRIMARY KEY,

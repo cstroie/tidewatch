@@ -12,7 +12,7 @@ function poll_device(array $dev): void
     $id = (int)$dev['id'];
     $metrics = db_all('SELECT * FROM metrics WHERE device_id=? AND enabled=1', [$id]);
 
-    $oids = [OID_UPTIME];
+    $oids = [OID_UPTIME, OID_SYSNAME, OID_SYSCONTACT, OID_SYSLOCATION];
     foreach ($metrics as $m) {
         foreach (preg_split('#[/,]#', $m['oid']) as $o) {
             $oids[] = $o;
@@ -32,6 +32,15 @@ function poll_device(array $dev): void
     $rebooted = $dev['uptime'] !== null && $uptime < (int)$dev['uptime'];
     db_exec("UPDATE devices SET status='up', last_poll=?, uptime=? WHERE id=?", [$now, $uptime, $id]);
     alert_device($dev, 'up');
+
+    // keep the descriptive system fields current (only write when they changed)
+    $sys = ['sysname' => $vals[OID_SYSNAME] ?? null, 'syscontact' => $vals[OID_SYSCONTACT] ?? null, 'syslocation' => $vals[OID_SYSLOCATION] ?? null];
+    foreach ($sys as $col => $v) {
+        $v = $v === null || $v === '' ? null : (string)$v;
+        if ($v !== ($dev[$col] ?? null)) {
+            db_exec("UPDATE devices SET $col=? WHERE id=?", [$v, $id]);
+        }
+    }
 
     $pdo = db();
     $pdo->beginTransaction();
