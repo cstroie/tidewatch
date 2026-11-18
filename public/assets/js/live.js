@@ -42,6 +42,11 @@
     groups.forEach(draw);
   }
 
+  function latest(u) {
+    var n = u.data[0].length;
+    if (n && u.cursor.idx == null) u.setLegend({ idx: n - 1 }, false);
+  }
+
   function opts(g) {
     var grid = TW.css('--grid'), text = TW.css('--muted');
     var ax = { stroke: text, grid: { stroke: grid, width: 1 }, ticks: { stroke: grid, width: 1 }, font: '11px ' + TW.css('--font') };
@@ -54,6 +59,8 @@
                  value: function (u, v) { return v == null ? '—' : TW.fmt(v, m.unit || ''); } };
       })),
       cursor: { points: { size: 6 } },
+      // Legend shows the latest sample while the cursor is off the plot
+      hooks: { ready: [latest], setData: [latest], setCursor: [latest] },
       scales: { x: { time: true, range: function (u, min, max) { return [max - WINDOW, max]; } }, y: { range: function (u, min, max) { return [Math.min(0, min || 0), unit === '%' ? Math.max(100, max || 0) : (max > 0 ? max * 1.15 : 1)]; } } },
       axes: [Object.assign({}, ax), Object.assign({ size: 66, values: function (u, vals) { return vals.map(function (v) { return v == null ? '' : TW.fmt(v, unit).replace(' ', ''); }); } }, ax)]
     };
