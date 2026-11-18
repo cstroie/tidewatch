@@ -1,4 +1,4 @@
-// SVG arc gauges: <div data-gauge data-value data-max data-unit data-warn data-crit>
+// SVG arc gauges: <div data-gauge data-value data-max [data-min] data-unit data-warn data-crit>
 (function () {
   var NS = 'http://www.w3.org/2000/svg';
   var SWEEP = 240, R = 40, CX = 50, CY = 50;
@@ -29,12 +29,14 @@
   function set(g, value, opts) {
     if (!g._tw) build(g);
     opts = opts || {};
-    var max = num(opts.max != null ? opts.max : g.dataset.max) || 100;
+    var max = num(opts.max != null ? opts.max : g.dataset.max);
+    if (max == null) max = 100;
     var unitTxt = opts.unit != null ? opts.unit : (g.dataset.unit || '');
     var warn = num(opts.warn != null ? opts.warn : g.dataset.warn);
     var crit = num(opts.crit != null ? opts.crit : g.dataset.crit);
+    var min = num(opts.min != null ? opts.min : g.dataset.min) || 0;
     var v = num(value);
-    var frac = v == null ? 0 : Math.max(0, Math.min(1, v / max));
+    var frac = v == null || max <= min ? 0 : Math.max(0, Math.min(1, (v - min) / (max - min)));
     g._tw.bar.setAttribute('stroke-dashoffset', LEN * (1 - frac));
     if (v == null) { g._tw.val.textContent = '—'; g._tw.unit.textContent = ''; }
     else if (unitTxt === '%') { g._tw.val.textContent = (v >= 10 ? Math.round(v) : v.toFixed(1)) + '%'; g._tw.unit.textContent = ''; }

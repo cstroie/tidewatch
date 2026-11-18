@@ -1,5 +1,21 @@
 <?php
 require_once __DIR__ . '/device_form.php';
+require_once dirname(__DIR__) . '/metrics.php';
+
+/** Poll a just-saved device right away; returns its resulting status ('' if disabled or failed). */
+function poll_now(int $id): string
+{
+    $dev = db_one('SELECT * FROM devices WHERE id = ?', [$id]);
+    if (!$dev || !$dev['enabled']) {
+        return '';
+    }
+    try {
+        poll_device($dev);
+    } catch (Throwable $e) {
+        return '';
+    }
+    return (string)db_val('SELECT status FROM devices WHERE id = ?', [$id]);
+}
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $act = (string)($_POST['act'] ?? '');
@@ -42,7 +58,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         if ($id) {
             $set = implode(', ', array_map(fn($k) => "$k = ?", array_keys($row)));
             db_exec("UPDATE devices SET $set WHERE id = ?", [...array_values($row), $id]);
-            flash('Device saved.');
+            $st = poll_now($id);
+            flash('Device saved' . ($st ? "; polled, status: $st" : '') . '.', $st === 'down' ? 'err' : 'ok');
             redirect("app.php?p=device&id=$id&tab=settings");
         }
         db_exec('INSERT INTO devices (' . implode(',', array_keys($row)) . ') VALUES (' . implode(',', array_fill(0, count($row), '?')) . ')', array_values($row));
@@ -54,13 +71,18 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 if ($sys !== '') {
                     db_exec('UPDATE devices SET name = ? WHERE id = ?', [mb_substr($sys, 0, 128), $id]);
                 }
-                flash("Device added; discovered $n metrics.");
+                $msg = "Device added; discovered $n metrics";
+                $type = 'ok';
             } catch (Throwable $e) {
-                flash('Device added, but discovery failed: ' . $e->getMessage() . '. Check host, credentials/URL and firewall, then rediscover.', 'err');
+                $msg = 'Device added, but discovery failed: ' . $e->getMessage() . '. Check host, credentials/URL and firewall, then rediscover';
+                $type = 'err';
             }
         } else {
-            flash('Device added.');
+            $msg = 'Device added';
+            $type = 'ok';
         }
+        $st = poll_now($id);
+        flash($msg . ($st ? "; polled, status: $st" : '') . '.', $st === 'down' ? 'err' : $type);
         redirect("app.php?p=device&id=$id&tab=metrics");
     }
     if ($act === 'delete' && $id) {

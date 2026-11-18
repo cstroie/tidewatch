@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS metrics (
   scale REAL NOT NULL DEFAULT 1,
   warn REAL, crit REAL,
   enabled INTEGER NOT NULL DEFAULT 1,
+  ov_gauge INTEGER NOT NULL DEFAULT 0, ov_graph INTEGER NOT NULL DEFAULT 0,
+  g_min REAL, g_max REAL,
   UNIQUE(device_id, oid)
 );
 CREATE TABLE IF NOT EXISTS samples_raw (

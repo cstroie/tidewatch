@@ -23,7 +23,7 @@ function device_form(?array $d = null): void
       <option value="1" <?= $sel($d['version'], '1') ?>>v1</option><option value="2c" <?= $sel($d['version'], '2c') ?>>v2c</option><option value="3" <?= $sel($d['version'], '3') ?>>v3</option></select></div>
     <div class="field" data-snmp data-v12><label>Community</label><input type="text" name="community" value="<?= e($d['community']) ?>" autocomplete="off"></div>
     <div class="field"><label>Icon</label><select name="icon">
-      <option value="">Auto (<?= e(DEVICE_ICONS[device_icon_guess($d['sysdescr'] ?? null)]) ?>)</option>
+      <option value=""><?= $d['id'] ? 'Auto (' . e(DEVICE_ICONS[device_icon_name($d)]) . ')' : 'Auto' ?></option>
       <?php foreach (DEVICE_ICONS as $k => $l): ?><option value="<?= $k ?>" <?= $sel($d['icon'] ?? '', $k) ?>><?= e($l) ?></option><?php endforeach ?></select></div>
     <div class="field"><label>Poll interval (s)</label><input type="number" name="poll_interval" data-interval min="60" step="60" value="<?= e($d['poll_interval']) ?>"></div>
   </div>

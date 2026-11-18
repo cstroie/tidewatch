@@ -87,7 +87,7 @@ function public_metric_ids(): array
 }
 
 /** Small inline SVG sparkline from [ts => value]. */
-function sparkline(array $points, int $w = 260, int $h = 36): string
+function sparkline(array $points, int $w = 260, int $h = 36, bool $zero = true): string
 {
     $vals = array_values(array_filter($points, fn($v) => $v !== null));
     if (count($vals) < 2) {
@@ -97,22 +97,47 @@ function sparkline(array $points, int $w = 260, int $h = 36): string
     $t0 = min($ts);
     $t1 = max($ts) ?: $t0 + 1;
     $max = max($vals) ?: 1;
+    $min = $zero ? 0.0 : (float)min($vals); // chosen readings: scale to their own range
+    $span = ($zero ? $max : $max - $min) ?: 1;
     $d = '';
     foreach ($points as $t => $v) {
         if ($v === null) {
             continue;
         }
         $x = ($t - $t0) / max(1, $t1 - $t0) * $w;
-        $y = $h - 2 - ($v / $max) * ($h - 4);
+        $y = $h - 2 - (($v - $min) / $span) * ($h - 4);
         $d .= ($d === '' ? 'M' : 'L') . round($x, 1) . ',' . round($y, 1);
     }
     $area = $d . "L$w,$h L0,$h Z";
     return '<svg class="spark" viewBox="0 0 ' . $w . ' ' . $h . '" preserveAspectRatio="none"><path class="area" d="' . $area . '"/><path class="line" d="' . $d . '" vector-effect="non-scaling-stroke"/></svg>';
 }
 
-/** Summary gauges for a device card: list of [label, value, max, unit, warn, crit]. */
+/** Gauge range for a user-chosen reading: [min, max]. Explicit g_min/g_max win; % is 0..100; else auto. */
+function gauge_range(array $m, ?float $v): array
+{
+    $min = is_numeric($m['g_min'] ?? null) ? (float)$m['g_min'] : null;
+    $max = is_numeric($m['g_max'] ?? null) ? (float)$m['g_max'] : null;
+    $pct = ($m['unit'] ?? '') === '%';
+    $min ??= $pct ? 0.0 : ($v !== null && $v < 0 ? $v * 1.5 : 0.0);
+    $max ??= $pct ? 100.0 : ($v !== null && $v < 0 ? 0.0 : max(1.0, ($v ?? 0.0) * 1.5));
+    return [$min, $max > $min ? $max : $min + 1];
+}
+
+/** Summary gauges for a device card: list of [label, value, max, unit, warn, crit, min]. */
 function device_summary(int $id): array
 {
+    // readings chosen by the user (Metrics tab) replace the automatic picks
+    $sel = db_all('SELECT id, label, unit, warn, crit, g_min, g_max FROM metrics WHERE device_id = ? AND enabled = 1 AND ov_gauge = 1 ORDER BY id LIMIT 3', [$id]);
+    if ($sel) {
+        $v = latest_values(array_column($sel, 'id'));
+        $g = [];
+        foreach ($sel as $m) {
+            $val = isset($v[$m['id']]) ? (float)$v[$m['id']] : null;
+            [$min, $max] = gauge_range($m, $val);
+            $g[] = [$m['label'], $val, $max, $m['unit'], $m['warn'], $m['crit'], $min];
+        }
+        return $g;
+    }
     $ms = db_all("SELECT id, kind, label, unit, warn, crit FROM metrics WHERE device_id = ? AND enabled = 1 AND kind IN ('cpu','mem','storage','supply')", [$id]);
     $v = latest_values(array_column($ms, 'id'));
     $g = [];
@@ -146,6 +171,23 @@ function device_summary(int $id): array
     return array_slice($g, 0, 3);
 }
 
+/**
+ * The card's graph: the reading chosen on the Metrics tab, else total interface traffic.
+ * Returns ['label','unit','points' => [ts => value],'zero' => bool (zero-based scale)].
+ */
+function device_graph(int $id, int $range = 21600): array
+{
+    $m = db_one('SELECT id, label, unit FROM metrics WHERE device_id = ? AND enabled = 1 AND ov_graph = 1 ORDER BY id LIMIT 1', [$id]);
+    if (!$m) {
+        return ['label' => 'Traffic', 'unit' => 'bps', 'points' => device_traffic($id, $range), 'zero' => true];
+    }
+    $pts = [];
+    foreach (db_all('SELECT ts, value FROM samples_raw WHERE metric_id = ? AND ts > ? AND value IS NOT NULL ORDER BY ts', [$m['id'], time() - $range]) as $r) {
+        $pts[(int)$r['ts']] = (float)$r['value'];
+    }
+    return ['label' => $m['label'], 'unit' => (string)$m['unit'], 'points' => $pts, 'zero' => false];
+}
+
 /** Total interface in+out traffic for the sparkline: [ts => bps]. */
 function device_traffic(int $id, int $range = 21600): array
 {
@@ -158,9 +200,9 @@ function device_traffic(int $id, int $range = 21600): array
     return $out;
 }
 
-function gauge_html(string $label, ?float $value, float $max, ?string $unit, $warn = null, $crit = null): string
+function gauge_html(string $label, ?float $value, float $max, ?string $unit, $warn = null, $crit = null, float $min = 0.0): string
 {
-    return '<div class="gauge" data-gauge data-value="' . ($value === null ? '' : round($value, 2)) . '" data-max="' . $max
+    return '<div class="gauge" data-gauge data-value="' . ($value === null ? '' : round($value, 2)) . '" data-max="' . $max . '" data-min="' . $min
         . '" data-unit="' . htmlspecialchars((string)$unit) . '" data-warn="' . ($warn ?? '') . '" data-crit="' . ($crit ?? '')
         . '"></div><div class="glabel" title="' . htmlspecialchars($label) . '">' . htmlspecialchars($label) . '</div>';
 }

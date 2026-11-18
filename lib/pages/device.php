@@ -15,12 +15,24 @@ if (!isset($_GET['tab']) && $prom) {
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $act = (string)($_POST['act'] ?? '');
     if ($act === 'metrics') {
-        $st = db()->prepare('UPDATE metrics SET label = ?, warn = ?, crit = ?, enabled = ? WHERE id = ? AND device_id = ?');
-        foreach ((array)($_POST['m'] ?? []) as $mid => $f) {
+        $st = db()->prepare('UPDATE metrics SET label = ?, warn = ?, crit = ?, enabled = ?, ov_gauge = ?, ov_graph = ?, g_min = ?, g_max = ? WHERE id = ? AND device_id = ?');
+        $rows = (array)($_POST['m'] ?? []);
+        ksort($rows);
+        $graphId = (int)($_POST['graph'] ?? 0);
+        $ng = 0;
+        $dropped = false;
+        foreach ($rows as $mid => $f) {
             $num = fn($v) => is_numeric($v) ? (float)$v : null;
-            $st->execute([mb_substr(trim((string)($f['label'] ?? '')), 0, 120) ?: 'metric', $num($f['warn'] ?? ''), $num($f['crit'] ?? ''), empty($f['enabled']) ? 0 : 1, (int)$mid, $id]);
+            $gauge = !empty($f['gauge']);
+            if ($gauge && $ng >= 3) {
+                $gauge = false; // at most 3 gauges on the overview card
+                $dropped = true;
+            }
+            $ng += $gauge ? 1 : 0;
+            $st->execute([mb_substr(trim((string)($f['label'] ?? '')), 0, 120) ?: 'metric', $num($f['warn'] ?? ''), $num($f['crit'] ?? ''), empty($f['enabled']) ? 0 : 1,
+                $gauge ? 1 : 0, (int)$mid === $graphId ? 1 : 0, $num($f['gmin'] ?? ''), $num($f['gmax'] ?? ''), (int)$mid, $id]);
         }
-        flash('Metrics saved.');
+        $dropped ? flash('Metrics saved. Only 3 gauges fit on the overview card; the extra ones were not selected.', 'err') : flash('Metrics saved.');
         redirect("$self&tab=metrics");
     }
     if ($act === 'custom' && !$prom) {
@@ -189,9 +201,9 @@ page_start($dev['name'], 'devices');
 <?php elseif ($tab === 'metrics'): ?>
   <form method="post" class="card flush" style="margin-bottom:16px">
     <?= csrf_field() ?><input type="hidden" name="act" value="metrics">
-    <div class="card-head" style="padding:14px 16px 0"><h3>All metrics</h3><div class="right"><span class="small muted">If warn &gt; crit, lower values are worse (e.g. toner).</span><button class="btn btn-sm">Save</button></div></div>
+    <div class="card-head" style="padding:14px 16px 0"><h3>All metrics</h3><div class="right"><label class="check small" title="Overview card graph"><input type="radio" name="graph" value="0" <?= array_filter($metrics, fn($m) => $m['ov_graph']) ? '' : 'checked' ?>> Default card graph</label><span class="small muted">If warn &gt; crit, lower values are worse (e.g. toner).</span><button class="btn btn-sm">Save</button></div></div>
     <div class="table-wrap"><table class="tbl">
-      <thead><tr><th>On</th><th>Kind</th><th>Label</th><th class="num">Last</th><th>Warn</th><th>Crit</th><th>OID</th><th></th></tr></thead>
+      <thead><tr><th>On</th><th>Kind</th><th>Label</th><th class="num">Last</th><th>Warn</th><th>Crit</th><th title="Gauge on the overview card (max 3)">Gauge</th><th>Min</th><th>Max</th><th title="Graph on the overview card (one)">Graph</th><th>OID</th><th></th></tr></thead>
       <tbody>
       <?php foreach ($metrics as $m): $f = "m[{$m['id']}]"; ?>
         <tr>
@@ -201,6 +213,10 @@ page_start($dev['name'], 'devices');
           <td class="num"><?= isset($last[$m['id']]) ? e(fmt_num($last[$m['id']])) . ' ' . e($m['unit']) : '—' ?></td>
           <td><input type="number" step="any" name="<?= $f ?>[warn]" value="<?= e($m['warn']) ?>"></td>
           <td><input type="number" step="any" name="<?= $f ?>[crit]" value="<?= e($m['crit']) ?>"></td>
+          <td><input type="checkbox" class="check" name="<?= $f ?>[gauge]" value="1" <?= $m['ov_gauge'] ? 'checked' : '' ?>></td>
+          <td><input type="number" step="any" name="<?= $f ?>[gmin]" value="<?= e($m['g_min']) ?>" placeholder="auto" title="Gauge minimum"></td>
+          <td><input type="number" step="any" name="<?= $f ?>[gmax]" value="<?= e($m['g_max']) ?>" placeholder="auto" title="Gauge maximum"></td>
+          <td><input type="radio" name="graph" value="<?= $m['id'] ?>" <?= $m['ov_graph'] ? 'checked' : '' ?>></td>
           <td class="mono muted small"><?= e($m['oid']) ?></td>
           <td><button class="btn btn-ghost btn-sm" form="del<?= $m['id'] ?>" title="Delete metric and its history">✕</button></td>
         </tr>

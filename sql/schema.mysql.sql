@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS metrics (
   scale DOUBLE NOT NULL DEFAULT 1,
   warn DOUBLE, crit DOUBLE,
   enabled TINYINT NOT NULL DEFAULT 1,
+  ov_gauge TINYINT NOT NULL DEFAULT 0, ov_graph TINYINT NOT NULL DEFAULT 0,
+  g_min DOUBLE, g_max DOUBLE,
   UNIQUE KEY (device_id, oid),
   FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;

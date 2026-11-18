@@ -27,8 +27,9 @@ page_start('Overview', 'overview');
 <div class="grid grid-auto">
 <?php foreach ($devices as $d):
     $gauges = $d['status'] === 'up' ? device_summary((int)$d['id']) : [];
-    $traffic = $d['status'] === 'up' ? device_traffic((int)$d['id']) : [];
-    $nowBps = $traffic ? end($traffic) : null;
+    $graph = $d['status'] === 'up' ? device_graph((int)$d['id']) : ['points' => []];
+    $pts = $graph['points'];
+    $nowVal = $pts ? end($pts) : null;
 ?>
   <a class="card dev-card <?= $d['status'] === 'down' ? 'is-down' : '' ?>" href="app.php?p=device&id=<?= $d['id'] ?>">
     <div class="top">
@@ -41,13 +42,13 @@ page_start('Overview', 'overview');
     </div>
     <?php if ($gauges): ?>
       <div class="gauges">
-        <?php foreach ($gauges as [$l, $v, $max, $u, $w, $c]): ?><div class="gauge-wrap" style="flex:1;min-width:0;text-align:center"><?= gauge_html($l, $v, $max, $u, $w, $c) ?></div><?php endforeach ?>
+        <?php foreach ($gauges as [$l, $v, $max, $u, $w, $c, $min]): ?><div class="gauge-wrap" style="flex:1;min-width:0;text-align:center"><?= gauge_html($l, $v, $max, $u, $w, $c, (float)($min ?? 0)) ?></div><?php endforeach ?>
       </div>
     <?php elseif ($d['status'] === 'down'): ?>
       <div class="muted small">No response since <?= e(fmt_ago((int)$d['last_poll'])) ?>.</div>
     <?php endif ?>
-    <?php if ($traffic): ?>
-      <div><div class="small muted" style="display:flex;justify-content:space-between"><span>Traffic · 6h</span><span><?= e(fmt_num((float)$nowBps)) ?>bps</span></div><?= sparkline($traffic) ?></div>
+    <?php if ($pts): ?>
+      <div><div class="small muted" style="display:flex;justify-content:space-between"><span><?= e($graph['label']) ?> · 6h</span><span><?= e(fmt_num((float)$nowVal)) ?><?= $graph['zero'] ? '' : ' ' ?><?= e($graph['unit']) ?></span></div><?= sparkline($pts, 260, 36, $graph['zero']) ?></div>
     <?php endif ?>
     <div class="foot"><span>⏱ <?= e(fmt_uptime($d['uptime'] ? (int)$d['uptime'] : null)) ?></span><span>polled <?= e(fmt_ago($d['last_poll'] ? (int)$d['last_poll'] : null)) ?></span></div>
   </a>

@@ -43,6 +43,7 @@ function icon(string $name): string
         'radio'  => '<circle cx="12" cy="9" r="2"/><path d="M12 11v11M8.5 5.5a5 5 0 0 0 0 7M15.5 5.5a5 5 0 0 1 0 7M5.6 2.6a9 9 0 0 0 0 12.8M18.4 2.6a9 9 0 0 1 0 12.8"/>',
         'ap'     => '<path d="M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M2 8.8a15 15 0 0 1 20 0M12 20h.01"/>',
         'ups'    => '<rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 11v2M11.5 9.5 9 12.5h4l-2.5 3"/>',
+        'sensor' => '<path d="M10 13.8V5a2 2 0 0 1 4 0v8.8a4 4 0 1 1-4 0z"/><path d="M12 9v7M18 6.5a4 4 0 0 1 0 4M20.6 4.2a7.5 7.5 0 0 1 0 8.6"/>',
         'globe'  => '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
     ];
     return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' . ($p[$name] ?? '') . '</svg>';
@@ -151,7 +152,7 @@ function range_picker(): string
 
 const DEVICE_ICONS = ['server' => 'Server', 'desktop' => 'Desktop / thin client', 'laptop' => 'Laptop', 'sbc' => 'Single-board / embedded',
     'router' => 'Router', 'switch' => 'Switch', 'ap' => 'Wireless AP', 'nas' => 'NAS / storage', 'printer' => 'Printer',
-    'radio' => 'Radio / SDR', 'ups' => 'UPS / power'];
+    'radio' => 'Radio / SDR', 'ups' => 'UPS / power', 'sensor' => 'Microcontroller / sensor'];
 
 /** Best guess of a device icon from its sysDescr. */
 function device_icon_guess(?string $descr): string
@@ -166,6 +167,7 @@ function device_icon_guess(?string $descr): string
         'ups'     => '/\bups\b|smart-ups|apc web|eaton/i',
         'desktop' => '/windows/i',
         'laptop'  => '/darwin|macos/i',
+        'sensor'  => '/esp-?(8266|32|easy)|arduino|tasmota|wemos|stm32|pico\\b|microcontroller/i',
         'sbc'     => '/armv\d|aarch64|arm64|raspberry|msm\d|mips/i',
     ];
     foreach ($rules as $icon => $re) {
@@ -179,7 +181,10 @@ function device_icon_guess(?string $descr): string
 function device_icon_name(array $dev): string
 {
     $i = (string)($dev['icon'] ?? '');
-    return isset(DEVICE_ICONS[$i]) ? $i : device_icon_guess($dev['sysdescr'] ?? null);
+    if (isset(DEVICE_ICONS[$i])) {
+        return $i;
+    }
+    return ($dev['type'] ?? 'snmp') === 'prom' ? 'sensor' : device_icon_guess($dev['sysdescr'] ?? null);
 }
 
 /** Icon tile with a status dot in the corner. */

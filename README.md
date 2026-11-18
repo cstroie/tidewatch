@@ -10,7 +10,7 @@ Charts by [uPlot](https://github.com/leeoniya/uPlot) (vendored, 50 KB), gauges i
 - **Auto-discovery**: interfaces (64-bit counters), CPU, load, memory, filesystems,
   LM-SENSORS and ENTITY-SENSOR sensors, printer toner/supplies and page counters, plus custom OIDs.
 - **Storage**: raw 1-min samples for 2 days, 5-min rollups for 30 days, hourly for a year.
-- **UI**: overview cards with gauges and sparklines; per-device system/interface/sensor views;
+- **UI**: overview cards with gauges and sparklines (per device, pick up to 3 gauge readings, with optional min/max, and 1 graph reading on the Metrics tab); per-device system/interface/sensor views;
   a drag-and-drop dashboard editor (graph, gauge, stat and status panels); alerts and an event log.
   Light and dark themes, responsive down to phone width.
 - **Public page**: overall status plus devices and dashboards you mark public. It never shows

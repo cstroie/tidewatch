@@ -72,7 +72,7 @@ function db_is_sqlite(): bool
 
 function db_migrate(PDO $pdo): void
 {
-    $version = 4;
+    $version = 5;
     $cur = 0;
     try {
         $cur = (int)$pdo->query("SELECT v FROM meta WHERE k='schema'")->fetchColumn();
@@ -102,6 +102,13 @@ function db_migrate(PDO $pdo): void
             $pdo->exec("ALTER TABLE devices ADD COLUMN type " . ($t ? 'TEXT' : 'VARCHAR(8)') . " NOT NULL DEFAULT 'snmp'");
             $pdo->exec("ALTER TABLE devices ADD COLUMN scheme " . ($t ? 'TEXT' : 'VARCHAR(5)') . " NOT NULL DEFAULT 'http'");
             $pdo->exec("ALTER TABLE devices ADD COLUMN path " . ($t ? 'TEXT' : 'VARCHAR(255)') . " NOT NULL DEFAULT '/metrics'");
+        }
+        if ($cur < 5) {
+            $t = db_is_sqlite();
+            $pdo->exec('ALTER TABLE metrics ADD COLUMN ov_gauge ' . ($t ? 'INTEGER' : 'TINYINT') . ' NOT NULL DEFAULT 0');
+            $pdo->exec('ALTER TABLE metrics ADD COLUMN ov_graph ' . ($t ? 'INTEGER' : 'TINYINT') . ' NOT NULL DEFAULT 0');
+            $pdo->exec('ALTER TABLE metrics ADD COLUMN g_min ' . ($t ? 'REAL' : 'DOUBLE'));
+            $pdo->exec('ALTER TABLE metrics ADD COLUMN g_max ' . ($t ? 'REAL' : 'DOUBLE'));
         }
     }
     db_upsert('meta', ['k' => 'schema', 'v' => (string)$version], ['k'], $pdo);
