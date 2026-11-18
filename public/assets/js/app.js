@@ -26,13 +26,16 @@
 })();
 
 window.TW = {
+  SCALE: { '': 1, bps: 1, pps: 1, pages: 1, B: 1, Hz: 1, W: 1, VA: 1, V: 1, A: 1, Wh: 1, lx: 1 },
   css: function (name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); },
   csrf: function () { var m = document.querySelector('meta[name=csrf]'); return m ? m.content : ''; },
   fmt: function (v, unit) {
     if (v == null || isNaN(v)) return '—';
+    var BYTES = { kB: 1e3, MB: 1e6, GB: 1e9, TB: 1e12 };
+    if (BYTES[unit]) { v *= BYTES[unit]; unit = 'B'; } // re-base so 147996 kB reads 148 MB
     var a = Math.abs(v), s = '';
-    if (unit === 'bps' || unit === 'pps' || unit === 'pages' || unit === '') {
-      if (a >= 1e9) { v /= 1e9; s = 'G'; } else if (a >= 1e6) { v /= 1e6; s = 'M'; } else if (a >= 1e3) { v /= 1e3; s = 'k'; }
+    if (TW.SCALE[unit]) { // SI-prefixed units: 147996 B -> 148 kB
+      if (a >= 1e12) { v /= 1e12; s = 'T'; } else if (a >= 1e9) { v /= 1e9; s = 'G'; } else if (a >= 1e6) { v /= 1e6; s = 'M'; } else if (a >= 1e3) { v /= 1e3; s = 'k'; }
     }
     a = Math.abs(v);
     var d = a >= 100 ? 0 : a >= 10 ? 1 : 2;

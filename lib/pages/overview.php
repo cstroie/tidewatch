@@ -48,7 +48,7 @@ page_start('Overview', 'overview');
       <div class="muted small">No response since <?= e(fmt_ago((int)$d['last_poll'])) ?>.</div>
     <?php endif ?>
     <?php if ($pts): ?>
-      <div><div class="small muted" style="display:flex;justify-content:space-between"><span><?= e($graph['label']) ?> · 6h</span><span><?= e(fmt_num((float)$nowVal)) ?><?= $graph['zero'] ? '' : ' ' ?><?= e($graph['unit']) ?></span></div><?= sparkline($pts, 260, 36, $graph['zero']) ?></div>
+      <div><div class="small muted" style="display:flex;justify-content:space-between"><span><?= e($graph['label']) ?> · 6h</span><span><?= e($graph['zero'] ? fmt_num((float)$nowVal) . $graph['unit'] : fmt_unit((float)$nowVal, $graph['unit'])) ?></span></div><?= sparkline($pts, 260, 36, $graph['zero']) ?></div>
     <?php endif ?>
     <div class="foot"><span>⏱ <?= e(fmt_uptime($d['uptime'] ? (int)$d['uptime'] : null)) ?></span><span>polled <?= e(fmt_ago($d['last_poll'] ? (int)$d['last_poll'] : null)) ?></span></div>
   </a>

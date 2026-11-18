@@ -22,7 +22,7 @@ page_start('Alerts', 'alerts');
       <tr><td><span class="pill pill-<?= e($a['state']) ?>"><?= e($a['state']) ?></span></td>
         <td><a href="app.php?p=device&id=<?= (int)$a['device_id'] ?>"><?= e($a['dname']) ?></a></td>
         <td><?= $a['metric_id'] ? e($a['mlabel']) : 'Device unreachable' ?></td>
-        <td class="num"><?= $a['metric_id'] && isset($last[$a['metric_id']]) ? e(fmt_num($last[$a['metric_id']]) . ' ' . $a['unit']) : '—' ?></td>
+        <td class="num"><?= $a['metric_id'] && isset($last[$a['metric_id']]) ? e(fmt_unit($last[$a['metric_id']], $a['unit'])) : '—' ?></td>
         <td><?= date('M j H:i', (int)$a['since']) ?> <span class="muted small">(<?= e(fmt_ago((int)$a['since'])) ?>)</span></td></tr>
     <?php endforeach ?>
     </tbody></table></div>

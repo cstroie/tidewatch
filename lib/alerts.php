@@ -27,7 +27,7 @@ function alert_metric(array $dev, array $m, float $v): void
     if ($cur === $state) {
         return;
     }
-    $msg = sprintf('%s / %s: %s (%s %s)', $dev['name'], $m['label'], strtoupper($state), fmt_num($v), $m['unit'] ?? '');
+    $msg = sprintf('%s / %s: %s (%s)', $dev['name'], $m['label'], strtoupper($state), fmt_unit($v, $m['unit'] ?? ''));
     log_event($state, $msg, (int)$dev['id'], (int)$m['id']);
     alert_set((int)$dev['id'], (int)$m['id'], $state, $msg);
 }
@@ -54,6 +54,30 @@ function alert_mail(string $msg): void
     }
     $headers = 'From: ' . config('mail_from') . "\r\nContent-Type: text/plain; charset=UTF-8";
     @mail($to, '[' . config('app_name') . '] ' . $msg, $msg . "\n\n" . date('Y-m-d H:i:s T') . "\n", $headers);
+}
+
+/** Value with an SI-prefixed unit, e.g. 147996 'B' -> '148 kB'. Mirrors TW.fmt in app.js. */
+function fmt_unit(float $v, ?string $unit): string
+{
+    $unit = (string)$unit;
+    $bytes = ['kB' => 1e3, 'MB' => 1e6, 'GB' => 1e9, 'TB' => 1e12];
+    if (isset($bytes[$unit])) {
+        $v *= $bytes[$unit];
+        $unit = 'B';
+    }
+    $s = '';
+    if (in_array($unit, ['', 'bps', 'pps', 'pages', 'B', 'Hz', 'W', 'VA', 'V', 'A', 'Wh', 'lx'], true)) {
+        foreach ([1e12 => 'T', 1e9 => 'G', 1e6 => 'M', 1e3 => 'k'] as $f => $p) {
+            if (abs($v) >= $f) {
+                $v /= $f;
+                $s = $p;
+                break;
+            }
+        }
+    }
+    $a = abs($v);
+    $n = preg_replace('/\.0+$/', '', number_format($v, $a >= 100 ? 0 : ($a >= 10 ? 1 : 2), '.', ''));
+    return $n . ($s . $unit !== '' ? ' ' . $s . $unit : '');
 }
 
 function fmt_num(float $v): string
