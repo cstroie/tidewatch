@@ -30,6 +30,9 @@ function db(): PDO
         return $GLOBALS['__tw_pdo'];
     }
     $dsn = config('db_dsn');
+    if (str_starts_with($dsn, 'sqlite:')) {
+        sqlite_prepare_file(substr($dsn, 7));
+    }
     $pdo = $GLOBALS['__tw_pdo'] = new PDO($dsn, config('db_user'), config('db_pass'), [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -42,6 +45,24 @@ function db(): PDO
     }
     db_migrate($pdo);
     return $pdo;
+}
+
+/**
+ * SQLite creates files 0644 whatever the umask, so pre-create the database 0660:
+ * cron (owner) and the web server (group) must both write it. SQLite gives the
+ * -wal/-shm files the same mode as the main file.
+ */
+function sqlite_prepare_file(string $file): void
+{
+    if ($file === '' || $file === ':memory:') {
+        return;
+    }
+    if (!file_exists($file)) {
+        @touch($file);
+    }
+    if (is_file($file) && @fileowner($file) === (function_exists('posix_geteuid') ? posix_geteuid() : getmyuid()) && (fileperms($file) & 0660) !== 0660) {
+        @chmod($file, 0660);
+    }
 }
 
 function db_is_sqlite(): bool
