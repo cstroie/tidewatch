@@ -59,8 +59,8 @@ function discover_device(int $id): int
         $add('cpu', "1.3.6.1.2.1.25.3.3.1.2.$i", 'CPU ' . $n++, '%', 'gauge', 1, 80, 95);
     }
     // Load average (UCD)
-    foreach (snmp_column($s, '1.3.6.1.4.1.2021.10.1.6') as $i => $v) {
-        $add('load', "1.3.6.1.4.1.2021.10.1.6.$i", ['1' => 'Load 1m', '2' => 'Load 5m', '3' => 'Load 15m'][$i] ?? "Load $i", null, 'gauge', 0.01);
+    foreach (snmp_column($s, '1.3.6.1.4.1.2021.10.1.5') as $i => $v) {
+        $add('load', "1.3.6.1.4.1.2021.10.1.5.$i", ['1' => 'Load 1m', '2' => 'Load 5m', '3' => 'Load 15m'][$i] ?? "Load $i", null, 'gauge', 0.01);
     }
 
     // Storage (hrStorageTable): value = 100 * used / size
@@ -103,6 +103,20 @@ function discover_device(int $id): int
             }
             $scale = 10 ** (3 * ((int)($escale[$i] ?? 9) - 9)) * 10 ** (-(int)($eprec[$i] ?? 0));
             $add('sensor', "1.3.6.1.2.1.99.1.1.1.4.$i", $ename[$i] ?? "sensor $i", $units[$t], 'gauge', $scale);
+        }
+    }
+
+    // Printer-MIB: supplies (% remaining when max is known) and page counter
+    $sdesc = snmp_column($s, '1.3.6.1.2.1.43.11.1.1.6');
+    if ($sdesc) {
+        $smax = snmp_column($s, '1.3.6.1.2.1.43.11.1.1.8');
+        foreach ($sdesc as $i => $d) {
+            if ((int)($smax[$i] ?? 0) > 0) {
+                $add('supply', "1.3.6.1.2.1.43.11.1.1.9.$i/1.3.6.1.2.1.43.11.1.1.8.$i", $d, '%', 'ratio', 100, 20, 10);
+            }
+        }
+        foreach (snmp_column($s, '1.3.6.1.2.1.43.10.2.1.4') as $i => $v) {
+            $add('pages', "1.3.6.1.2.1.43.10.2.1.4.$i", 'Pages printed', 'pages');
         }
     }
 

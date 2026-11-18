@@ -14,18 +14,15 @@ function alert_device(array $dev, string $status): void
     alert_set((int)$dev['id'], null, $status === 'up' ? 'ok' : 'crit', $msg);
 }
 
-/** Threshold check for a metric value (warn/crit, higher is worse). */
+/** Threshold check: higher is worse, unless warn > crit (then lower is worse, e.g. toner). */
 function alert_metric(array $dev, array $m, float $v): void
 {
     if ($m['warn'] === null && $m['crit'] === null) {
         return;
     }
-    $state = 'ok';
-    if ($m['crit'] !== null && $v >= (float)$m['crit']) {
-        $state = 'crit';
-    } elseif ($m['warn'] !== null && $v >= (float)$m['warn']) {
-        $state = 'warn';
-    }
+    $low = $m['warn'] !== null && $m['crit'] !== null && (float)$m['warn'] > (float)$m['crit'];
+    $hit = fn($t) => $t !== null && ($low ? $v <= (float)$t : $v >= (float)$t);
+    $state = $hit($m['crit']) ? 'crit' : ($hit($m['warn']) ? 'warn' : 'ok');
     $cur = db_val('SELECT state FROM alerts WHERE metric_id=?', [$m['id']]) ?: 'ok';
     if ($cur === $state) {
         return;
