@@ -1,0 +1,61 @@
+CREATE TABLE IF NOT EXISTS devices (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  host TEXT NOT NULL,
+  port INTEGER NOT NULL DEFAULT 161,
+  version TEXT NOT NULL DEFAULT '2c',
+  community TEXT,
+  v3_user TEXT, v3_level TEXT, v3_auth_proto TEXT, v3_auth_pass TEXT,
+  v3_priv_proto TEXT, v3_priv_pass TEXT,
+  poll_interval INTEGER NOT NULL DEFAULT 60,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  public INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'unknown',
+  last_poll INTEGER, sysdescr TEXT, sysname TEXT, uptime INTEGER
+);
+CREATE TABLE IF NOT EXISTS metrics (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  device_id INTEGER NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL,
+  oid TEXT NOT NULL,
+  label TEXT NOT NULL,
+  unit TEXT,
+  type TEXT NOT NULL DEFAULT 'gauge',
+  scale REAL NOT NULL DEFAULT 1,
+  warn REAL, crit REAL,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  UNIQUE(device_id, oid)
+);
+CREATE TABLE IF NOT EXISTS samples_raw (
+  metric_id INTEGER NOT NULL, ts INTEGER NOT NULL, value REAL,
+  PRIMARY KEY(metric_id, ts)
+) WITHOUT ROWID;
+CREATE TABLE IF NOT EXISTS samples_5m (
+  metric_id INTEGER NOT NULL, ts INTEGER NOT NULL, avg REAL, min REAL, max REAL,
+  PRIMARY KEY(metric_id, ts)
+) WITHOUT ROWID;
+CREATE TABLE IF NOT EXISTS samples_1h (
+  metric_id INTEGER NOT NULL, ts INTEGER NOT NULL, avg REAL, min REAL, max REAL,
+  PRIMARY KEY(metric_id, ts)
+) WITHOUT ROWID;
+CREATE TABLE IF NOT EXISTS last_counter (
+  metric_id INTEGER PRIMARY KEY, ts INTEGER NOT NULL, raw TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS dashboards (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL, public INTEGER NOT NULL DEFAULT 0,
+  layout_json TEXT NOT NULL DEFAULT '[]'
+);
+CREATE TABLE IF NOT EXISTS alerts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  device_id INTEGER, metric_id INTEGER,
+  state TEXT NOT NULL, since INTEGER NOT NULL, notified INTEGER NOT NULL DEFAULT 0,
+  UNIQUE(device_id, metric_id)
+);
+CREATE TABLE IF NOT EXISTS events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ts INTEGER NOT NULL, device_id INTEGER, metric_id INTEGER,
+  level TEXT NOT NULL, message TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_events_ts ON events(ts);
+CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT);

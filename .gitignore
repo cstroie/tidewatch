@@ -1,4 +1,3 @@
 config.php
 data/*
 !data/.gitkeep
-*.sqlite*
