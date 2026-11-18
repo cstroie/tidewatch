@@ -22,8 +22,9 @@ Charts by [uPlot](https://github.com/leeoniya/uPlot) (vendored, 50 KB), gauges i
 
 ```sh
 sudo apt install php-cli php-sqlite3 php-snmp snmp      # php-mysql for MariaDB
-git clone https://github.com/cstroie/tidewatch.git /var/www/html/snmp-monitor
-cd /var/www/html/snmp-monitor
+sudo git clone https://github.com/cstroie/tidewatch.git /var/www/tidewatch   # outside the web docroot
+sudo chown -R $USER:www-data /var/www/tidewatch
+cd /var/www/tidewatch
 php bin/passwd.php                 # creates config.php and sets the admin password
 ```
 
@@ -36,25 +37,34 @@ Cron writes the database as your user and the web server reads and writes it as 
 
 ```sh
 sudo chgrp -R www-data data config.php
-chmod 2770 data && chmod 660 data/* && chmod 640 config.php
+sudo chmod 2770 data && chmod 640 config.php   # sudo: setgid is dropped if you're not in www-data
 ```
+
+The database file is created group-writable automatically.
+
+The stock Debian/Ubuntu `snmpd` only exposes the system group. To monitor the host itself, comment out the
+`rocommunity ... -V systemonly` lines in `/etc/snmp/snmpd.conf`, add `rocommunity public 127.0.0.1`,
+and restart `snmpd`.
 
 ### Web server
 
 Serve **only** `public/`. `data/` holds the database, including SNMP communities, and must never be reachable.
-Example configs are in `contrib/` (lighttpd, nginx, Apache). For lighttpd with the project under
-`/var/www/html`:
+Example configs are in `contrib/` (lighttpd, nginx, Apache). For lighttpd with the project outside the docroot:
 
-```sh
-sudo cp contrib/lighttpd-tidewatch.conf /etc/lighttpd/conf-enabled/90-tidewatch.conf
-sudo systemctl reload lighttpd       # then open http://<host>/tidewatch/
 ```
+# /etc/lighttpd/conf-enabled/90-tidewatch.conf
+url.redirect += ( "^/tidewatch$" => "/tidewatch/" )
+alias.url    += ( "/tidewatch/" => "/var/www/tidewatch/public/" )
+```
+
+If the project sits inside the docroot, use `contrib/lighttpd-tidewatch.conf`, which also denies direct access.
+Reload lighttpd and open `http://<host>/tidewatch/`.
 
 ### Cron
 
 ```cron
-* * * * *   php /var/www/html/snmp-monitor/bin/poll.php
-*/5 * * * * php /var/www/html/snmp-monitor/bin/rollup.php
+* * * * *   php /var/www/tidewatch/bin/poll.php
+*/5 * * * * php /var/www/tidewatch/bin/rollup.php
 ```
 
 ## CLI
