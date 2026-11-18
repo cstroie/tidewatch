@@ -21,7 +21,7 @@ page_start('Overview', 'overview');
 </div>
 
 <?php if (!$devices): ?>
-  <div class="card empty-state"><?= icon('server') ?><p>No devices yet.</p><a class="btn" href="app.php?p=devices">Add your first device</a></div>
+  <div class="card empty-state"><?= icon('server') ?><p>No devices yet.</p><a class="btn" href="app.php?p=device_add">Add your first device</a></div>
 <?php endif ?>
 
 <div class="grid grid-auto">

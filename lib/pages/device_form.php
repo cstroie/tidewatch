@@ -14,7 +14,7 @@ function device_form(?array $d = null): void
     <div class="field"><label>Type</label><select name="type" data-type <?= $d['id'] ? 'disabled' : '' ?>>
       <option value="snmp" <?= $sel($d['type'], 'snmp') ?>>SNMP</option><option value="prom" <?= $sel($d['type'], 'prom') ?>>Prometheus /metrics</option></select>
       <?php if ($d['id']): ?><input type="hidden" name="type" value="<?= e($d['type']) ?>"><?php endif ?></div>
-    <div class="field"><label>Name</label><input type="text" name="name" required value="<?= e($d['name']) ?>" placeholder="core-switch"></div>
+    <div class="field"><label>Name</label><input type="text" name="name" value="<?= e($d['name']) ?>" placeholder="Optional: taken from the device (sysName), else host"><?php if (!$d['id']): ?><div class="hint">Leave blank to name it from the polled data.</div><?php endif ?></div>
     <div class="field"><label>Host / IP</label><input type="text" name="host" required value="<?= e($d['host']) ?>" placeholder="192.168.1.1"></div>
     <div class="field"><label>Port</label><input type="number" name="port" data-port value="<?= e($d['port']) ?>"></div>
     <div class="field" data-prom><label>Scheme</label><select name="scheme"><option value="http" <?= $sel($d['scheme'], 'http') ?>>http</option><option value="https" <?= $sel($d['scheme'], 'https') ?>>https</option></select></div>

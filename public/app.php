@@ -7,7 +7,7 @@ require_once dirname(__DIR__) . '/lib/discover.php';
 require_admin();
 csrf_check();
 
-$pages = ['overview', 'device', 'devices', 'dashboards', 'dashboard', 'alerts', 'settings'];
+$pages = ['overview', 'device', 'devices', 'device_add', 'dashboards', 'dashboard', 'alerts', 'settings'];
 $p = (string)($_GET['p'] ?? 'overview');
 if (!in_array($p, $pages, true)) {
     http_response_code(404);

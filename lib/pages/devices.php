@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/device_form.php';
+require_once __DIR__ . '/device_form.php';
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $act = (string)($_POST['act'] ?? '');
@@ -8,15 +8,19 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $f = fn($k, $d = null) => isset($_POST[$k]) && trim((string)$_POST[$k]) !== '' ? trim((string)$_POST[$k]) : $d;
         $name = mb_substr((string)$f('name', ''), 0, 128);
         $host = (string)$f('host', '');
-        if ($name === '' || !preg_match('/^[A-Za-z0-9.:\-_]+$/', $host)) {
-            flash('Name and a valid host/IP are required.', 'err');
-            redirect($id ? "app.php?p=device&id=$id&tab=settings" : 'app.php?p=devices');
+        if (!preg_match('/^[A-Za-z0-9.:\-_]+$/', $host)) {
+            flash('A valid host/IP is required.', 'err');
+            redirect($id ? "app.php?p=device&id=$id&tab=settings" : 'app.php?p=device_add');
         }
         $prom = $id ? db_val('SELECT type FROM devices WHERE id = ?', [$id]) === 'prom' : ($_POST['type'] ?? '') === 'prom';
+        $autoName = $name === ''; // blank name: use sysName once polled/discovered, host until then
+        if ($autoName) {
+            $name = $id ? (string)db_val('SELECT COALESCE(NULLIF(sysname, \'\'), ?) FROM devices WHERE id = ?', [$host, $id]) : $host;
+        }
         $path = '/' . ltrim((string)$f('path', '/metrics'), '/');
         if ($prom && (preg_match('#[\s"<>]#', $path) || strlen($path) > 255)) {
             flash('Invalid metrics path.', 'err');
-            redirect($id ? "app.php?p=device&id=$id&tab=settings" : 'app.php?p=devices');
+            redirect($id ? "app.php?p=device&id=$id&tab=settings" : 'app.php?p=device_add');
         }
         $row = [
             'type' => $prom ? 'prom' : 'snmp', 'scheme' => ($_POST['scheme'] ?? '') === 'https' ? 'https' : 'http', 'path' => $path,
@@ -45,7 +49,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $id = (int)db()->lastInsertId();
         if (!empty($_POST['discover'])) {
             try {
-                flash("Device added; discovered " . discover_device($id) . ' metrics.');
+                $n = discover_device($id);
+                $sys = $autoName ? (string)db_val('SELECT sysname FROM devices WHERE id = ?', [$id]) : '';
+                if ($sys !== '') {
+                    db_exec('UPDATE devices SET name = ? WHERE id = ?', [mb_substr($sys, 0, 128), $id]);
+                }
+                flash("Device added; discovered $n metrics.");
             } catch (Throwable $e) {
                 flash('Device added, but discovery failed: ' . $e->getMessage() . '. Check host, credentials/URL and firewall, then rediscover.', 'err');
             }
@@ -71,7 +80,7 @@ $devices = db_all('SELECT d.*, (SELECT COUNT(*) FROM metrics m WHERE m.device_id
 page_start('Devices', 'devices');
 ?>
 <div class="page-head"><div><h1>Devices</h1><div class="sub"><?= count($devices) ?> configured</div></div>
-  <div class="actions"><a class="btn btn-sm" href="#add">+ Add device</a></div></div>
+  <div class="actions"><a class="btn btn-sm" href="app.php?p=device_add">+ Add device</a></div></div>
 <?= flash() ?>
 <div class="card flush" style="margin-bottom:20px"><div class="table-wrap"><table class="tbl">
   <thead><tr><th></th><th>Name</th><th>Host</th><th>Type</th><th class="num">Metrics</th><th>Uptime</th><th>Last poll</th><th>Public</th></tr></thead>
@@ -88,8 +97,7 @@ page_start('Devices', 'devices');
       <td><?= $d['public'] ? '<span class="pill pill-accent">public</span>' : '' ?></td>
     </tr>
   <?php endforeach ?>
-  <?php if (!$devices): ?><tr><td colspan="8" class="muted" style="text-align:center;padding:30px">No devices yet. Add one below.</td></tr><?php endif ?>
+  <?php if (!$devices): ?><tr><td colspan="8" class="muted" style="text-align:center;padding:30px">No devices yet. <a href="app.php?p=device_add">Add one</a>.</td></tr><?php endif ?>
   </tbody></table></div></div>
-<div id="add"><?php device_form(); ?></div>
 <?php
 page_end();
