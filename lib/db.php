@@ -15,14 +15,19 @@ function config(?string $key = null, $default = null)
     return $key === null ? $cfg : ($cfg[$key] ?? $default);
 }
 
+/** Close the shared connection (call before pcntl_fork so children open their own). */
+function db_close(): void
+{
+    $GLOBALS['__tw_pdo'] = null;
+}
+
 function db(): PDO
 {
-    static $pdo = null;
-    if ($pdo) {
-        return $pdo;
+    if (!empty($GLOBALS['__tw_pdo'])) {
+        return $GLOBALS['__tw_pdo'];
     }
     $dsn = config('db_dsn');
-    $pdo = new PDO($dsn, config('db_user'), config('db_pass'), [
+    $pdo = $GLOBALS['__tw_pdo'] = new PDO($dsn, config('db_user'), config('db_pass'), [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
