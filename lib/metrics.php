@@ -76,6 +76,31 @@ function metric_value(array $m, array $vals, int $now, bool $rebooted): ?float
             }
             return 100.0 - (float)$vals[$m['oid']];
 
+        case 'cpu_raw': // UCD ssCpuRaw* tick counters; first OID is idle. busy % = 1 - d(idle)/d(total)
+            $o = explode(',', $m['oid']);
+            $cur = [];
+            foreach ($o as $x) {
+                if (!isset($vals[$x]) || !is_numeric($vals[$x])) {
+                    return null;
+                }
+                $cur[] = (float)$vals[$x];
+            }
+            $prev = db_val('SELECT raw FROM last_counter WHERE metric_id=?', [$m['id']]);
+            db_upsert('last_counter', ['metric_id' => $m['id'], 'ts' => $now, 'raw' => implode(',', $cur)], ['metric_id']);
+            $prev = $prev ? array_map('floatval', explode(',', (string)$prev)) : null;
+            if (!$prev || count($prev) !== count($cur) || $rebooted) {
+                return null;
+            }
+            $d = [];
+            foreach ($cur as $k => $v) {
+                $d[$k] = $v - $prev[$k];
+                if ($d[$k] < 0) {
+                    $d[$k] += 4294967296.0; // Counter32 wrap
+                }
+            }
+            $total = array_sum($d);
+            return $total > 0 ? round(100 * (1 - $d[0] / $total), 2) : null;
+
         case 'counter':
             if (!isset($vals[$m['oid']]) || !is_numeric($vals[$m['oid']])) {
                 return null;

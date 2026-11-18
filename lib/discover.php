@@ -8,6 +8,9 @@ const OID_UPTIME   = '1.3.6.1.2.1.1.3.0';
 const OID_SYSNAME  = '1.3.6.1.2.1.1.5.0';
 const UCD_MEM_TOTAL = '1.3.6.1.4.1.2021.4.5.0';
 const UCD_MEM_FREE  = '1.3.6.1.4.1.2021.4.6.0';
+// ssCpuRawIdle first, then user, nice, system, wait, interrupt, softIRQ
+const UCD_CPU_RAW   = ['1.3.6.1.4.1.2021.11.53.0', '1.3.6.1.4.1.2021.11.50.0', '1.3.6.1.4.1.2021.11.51.0', '1.3.6.1.4.1.2021.11.52.0',
+                       '1.3.6.1.4.1.2021.11.54.0', '1.3.6.1.4.1.2021.11.56.0', '1.3.6.1.4.1.2021.11.61.0'];
 const UCD_MEM_OIDS  = [UCD_MEM_TOTAL, UCD_MEM_FREE, '1.3.6.1.4.1.2021.4.14.0', '1.3.6.1.4.1.2021.4.15.0'];
 
 /**
@@ -44,7 +47,7 @@ function discover_device(int $id): int
             continue; // softwareLoopback
         }
         $name = $names[$i] ?? $d;
-        if (!empty($alias[$i])) {
+        if (!empty($alias[$i]) && $alias[$i] !== $name) {
             $name .= " ({$alias[$i]})";
         }
         $in  = isset($hc[$i]) ? "1.3.6.1.2.1.31.1.1.1.6.$i"  : "1.3.6.1.2.1.2.2.1.10.$i";
@@ -64,6 +67,12 @@ function discover_device(int $id): int
     }
     if ($n === 0 && $s->get(['1.3.6.1.4.1.2021.11.11.0'])) {
         $add('cpu', '1.3.6.1.4.1.2021.11.11.0', 'CPU', '%', 'idle', 1, 80, 95);
+    } elseif ($n === 0) {
+        // UCD raw tick counters (e.g. mini_snmpd): busy % from deltas; idle must be first
+        $raw = $s->get(UCD_CPU_RAW);
+        if (isset($raw[UCD_CPU_RAW[0]]) && count($raw) >= 2) {
+            $add('cpu', implode(',', array_keys(array_intersect_key(array_flip(UCD_CPU_RAW), $raw))), 'CPU', '%', 'cpu_raw', 1, 80, 95);
+        }
     }
     // Load average (UCD)
     foreach (snmp_column($s, '1.3.6.1.4.1.2021.10.1.5') as $i => $v) {
@@ -91,6 +100,13 @@ function discover_device(int $id): int
         }
         $add($ram ? 'mem' : 'storage', "1.3.6.1.2.1.25.2.3.1.6.$i/1.3.6.1.2.1.25.2.3.1.5.$i",
             $ram ? 'Memory' : $d, '%', 'ratio', 100, 85, 95);
+    }
+
+    // UCD dskTable (e.g. mini_snmpd) when HOST-RESOURCES storage is absent: dskPercent
+    if (!$stype) {
+        foreach (snmp_column($s, '1.3.6.1.4.1.2021.9.1.2') as $i => $path) {
+            $add('storage', "1.3.6.1.4.1.2021.9.1.9.$i", $path, '%', 'gauge', 1, 85, 95);
+        }
     }
 
     // LM-SENSORS: temperatures (m°C) and fans (RPM)
