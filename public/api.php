@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
-require dirname(__DIR__) . '/lib/data.php';
-require dirname(__DIR__) . '/lib/auth.php';
+require_once dirname(__DIR__) . '/lib/data.php';
+require_once dirname(__DIR__) . '/lib/auth.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -70,6 +70,28 @@ switch ($a) {
         }
         db_exec('UPDATE dashboards SET layout_json = ? WHERE id = ?', [json_encode($layout), (int)($in['id'] ?? 0)]);
         out(['ok' => true]);
+
+    case 'live': // polling live mode: one direct SNMP read, counter state round-trips via the browser
+        if (!$admin || ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+            out(['error' => 'forbidden'], 403);
+        }
+        csrf_check();
+        session_write_close();
+        require_once dirname(__DIR__) . '/lib/live.php';
+        $in = json_decode((string)file_get_contents('php://input'), true) ?: [];
+        $dev = db_one('SELECT * FROM devices WHERE id = ? AND enabled = 1', [(int)($in['d'] ?? 0)]);
+        if (!$dev) {
+            out(['error' => 'no such device'], 404);
+        }
+        $ms = live_metrics((int)$dev['id'], array_map('intval', (array)($in['m'] ?? [])));
+        $state = [];
+        foreach ((array)($in['state'] ?? []) as $k => $v) {
+            if (is_array($v) && count($v) === 2 && is_numeric($v[0]) && preg_match('/^[0-9.,]{1,400}$/', (string)$v[1])) {
+                $state[(int)$k] = [(float)$v[0], (string)$v[1]];
+            }
+        }
+        $s = live_sample(snmp_open($dev), $ms, $state);
+        out(['sample' => $s, 'state' => (object)$state, 'meta' => empty($in['state']) ? live_meta($ms) : null]);
 
     default:
         out(['error' => 'unknown action'], 400);

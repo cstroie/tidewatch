@@ -19,6 +19,9 @@ return [
 
     // Collector
     'poll_workers' => 8,
+    // live mode (device "Live" tab): max concurrent SSE streams (each holds one PHP worker) and stream lifetime
+    'live_streams' => 4,
+    'live_stream_secs' => 300,
 
     // Retention (seconds)
     'keep_raw' => 2 * 86400,

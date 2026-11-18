@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
-require dirname(__DIR__) . '/lib/view.php';
-require dirname(__DIR__) . '/lib/data.php';
-require dirname(__DIR__) . '/lib/discover.php';
+require_once dirname(__DIR__) . '/lib/view.php';
+require_once dirname(__DIR__) . '/lib/data.php';
+require_once dirname(__DIR__) . '/lib/discover.php';
 
 require_admin();
 csrf_check();

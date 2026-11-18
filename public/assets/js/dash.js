@@ -53,7 +53,7 @@
       body.appendChild(holder);
       var sub = h('div', 'small muted'); body.appendChild(sub);
       var upd = function () { updateValue(p, holder, sub); };
-      upd(); timers.push(setInterval(upd, 60000));
+      upd(); timers.push(setInterval(upd, 20000));
     } else if (p.type === 'status') {
       var list = h('div', null); list.style.overflow = 'auto'; list.style.height = '100%';
       body.appendChild(list);
@@ -64,7 +64,7 @@
           }).join('') || '<div class="muted small">No devices</div>';
         });
       };
-      st(); timers.push(setInterval(st, 60000));
+      st(); timers.push(setInterval(st, 20000));
     }
 
     if (editing) {

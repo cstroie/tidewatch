@@ -142,7 +142,7 @@ const CHART_JS = ['../vendor/uPlot.iife.min.js', 'gauge.js', 'charts.js'];
 
 function range_picker(): string
 {
-    $h = '<div class="seg" data-range-picker>';
+    $h = '<span class="chart-age" data-chart-age></span><div class="seg" data-range-picker>';
     foreach (array_keys(RANGES) as $r) {
         $h .= '<button type="button" data-range="' . $r . '">' . $r . '</button>';
     }

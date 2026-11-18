@@ -37,7 +37,11 @@
   function load(c) {
     var url = (c.el.dataset.api || 'api.php') + '?a=series&m=' + c.el.dataset.metrics + '&range=' + c.el.dataset.range;
     return TW.get(url).then(function (data) {
-      c.data = data;
+      var t = data.t || [], old = c.data && c.data.t;
+      var newest = t.length ? t[t.length - 1] : 0;
+      // skip the redraw when nothing changed since the last fetch (keeps zoom/cursor)
+      if (old && old.length === t.length && old.length && old[old.length - 1] === newest && c.range === c.el.dataset.range) return;
+      c.data = data; c.range = c.el.dataset.range; c.newest = newest;
       render(c);
     }).catch(function () { c.el.innerHTML = '<div class="empty">Could not load data</div>'; });
   }
@@ -77,7 +81,20 @@
   }
 
   document.addEventListener('tw:theme', function () { charts.forEach(render); });
-  setInterval(function () { if (!document.hidden) charts.forEach(function (c) { if (c.el.isConnected) load(c); }); }, 60000);
+  // Refresh every 20 s; the poller writes once a minute, so most fetches are cheap no-ops.
+  setInterval(function () { if (!document.hidden) charts.forEach(function (c) { if (c.el.isConnected) load(c); }); }, 20000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) charts.forEach(function (c) { if (c.el.isConnected) load(c); }); });
+
+  // "updated Ns ago" ticker: <span data-chart-age></span> shows the age of the newest sample on the page
+  setInterval(function () {
+    var els = document.querySelectorAll('[data-chart-age]');
+    if (!els.length) return;
+    var n = 0;
+    charts.forEach(function (c) { if (c.newest > n) n = c.newest; });
+    var txt = '';
+    if (n) { var a = Math.max(0, Math.round(Date.now() / 1000 - n)); txt = 'updated ' + (a < 90 ? a + 's' : Math.round(a / 60) + 'm') + ' ago'; }
+    els.forEach(function (e) { e.textContent = txt; });
+  }, 1000);
 
   // Global range picker: <div class="seg" data-range-picker> <button data-range="1h">…
   document.querySelectorAll('[data-range-picker]').forEach(function (seg) {

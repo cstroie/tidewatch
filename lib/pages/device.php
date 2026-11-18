@@ -67,7 +67,7 @@ $last = latest_values(array_column($metrics, 'id'));
 $en = fn($k) => array_values(array_filter($byKind[$k] ?? [], fn($m) => $m['enabled']));
 $ids = fn(array $ms) => implode(',', array_column($ms, 'id'));
 
-$tabs = ['system' => 'System', 'interfaces' => 'Interfaces', 'sensors' => 'Sensors & supplies', 'metrics' => 'Metrics', 'settings' => 'Settings'];
+$tabs = ['system' => 'System', 'live' => 'Live', 'interfaces' => 'Interfaces', 'sensors' => 'Sensors & supplies', 'metrics' => 'Metrics', 'settings' => 'Settings'];
 page_start($dev['name'], 'devices');
 ?>
 <div class="page-head">
@@ -102,6 +102,21 @@ page_start($dev['name'], 'devices');
     <?php if ($c = $en('custom')): ?><div class="card"><div class="card-head"><h3>Custom</h3></div><div class="chart" data-metrics="<?= $ids(array_slice($c, 0, 6)) ?>"></div></div><?php endif ?>
   </div>
   <?php if (!$cpu && !$mem && !$sto && !$en('custom')): ?><div class="card empty-state">No system metrics for this device. Check the <a href="<?= $self ?>&tab=interfaces">interfaces</a> or <a href="<?= $self ?>&tab=sensors">sensors</a> tabs.</div><?php endif ?>
+
+<?php elseif ($tab === 'live'):
+    require_once dirname(__DIR__) . '/live.php';
+    $lm = live_metrics($id);
+?>
+  <div id="live" data-device="<?= $id ?>" data-metrics="<?= $ids($lm) ?>">
+    <div class="live-bar card">
+      <span class="live-status" data-live-status>Starting…</span>
+      <div class="seg" title="Stream: one long connection (SSE). Poll: a request per sample."><button type="button" data-live-mode="stream">Stream</button><button type="button" data-live-mode="poll">Poll</button></div>
+      <div class="seg" title="Seconds between reads"><button type="button" data-live-int="1">1s</button><button type="button" data-live-int="2">2s</button><button type="button" data-live-int="5">5s</button></div>
+      <button type="button" class="btn btn-ghost" data-live-toggle>Pause</button>
+    </div>
+    <p class="muted small">Read directly from the device and not stored. Shows the last 5 minutes.</p>
+    <div class="grid grid-2" data-live-grid></div>
+  </div>
 
 <?php elseif ($tab === 'interfaces'):
     $ifs = [];
@@ -202,4 +217,4 @@ page_start($dev['name'], 'devices');
     device_form($dev);
 endif;
 
-page_end(CHART_JS);
+page_end($tab === 'live' ? array_merge(CHART_JS, ['live.js']) : CHART_JS);

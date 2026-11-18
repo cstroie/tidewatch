@@ -140,7 +140,7 @@ body.is-public .main { margin: 0 auto; max-width: 1200px; }
 .page-head { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
 .page-head h1 { margin: 0; }
 .page-head .sub { color: var(--muted); font-size: .9rem; }
-.page-head .actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+.page-head .actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
 /* Cards & grids */
 .card {
@@ -357,3 +357,16 @@ dialog::backdrop { background: rgba(0, 0, 0, .4); }
 .dev-badge-lg .ic { width: 26px; height: 26px; }
 .page-head .dev-badge .dot { border-color: var(--bg); }
 .tbl .dev-badge .dot { border-color: var(--surface); }
+
+/* live mode */
+.live-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 14px; margin-bottom: 8px; }
+.live-status { margin-right: auto; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; color: var(--muted); }
+.live-status::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+.live-status.on { color: var(--text); }
+.live-status.on::before { background: var(--ok, #2a9d6f); animation: tw-pulse 1.6s ease-in-out infinite; }
+.live-status.warn::before { background: var(--warn, #d99a23); }
+.live-now { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--muted); font-size: .85rem; text-align: right; }
+@keyframes tw-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+@media (prefers-reduced-motion: reduce) { .live-status.on::before { animation: none; } }
+@media (max-width: 700px) { .stat-row { grid-template-columns: 1fr 1fr; gap: 12px; } }
+.chart-age { font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }

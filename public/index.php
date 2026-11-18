@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
-require dirname(__DIR__) . '/lib/view.php';
-require dirname(__DIR__) . '/lib/data.php';
+require_once dirname(__DIR__) . '/lib/view.php';
+require_once dirname(__DIR__) . '/lib/data.php';
 
 // Public page: no hosts, IPs, descriptions or configuration are shown here.
 $devices = db_all('SELECT id, name, status, last_poll, uptime, icon, sysdescr FROM devices WHERE enabled = 1 AND public = 1 ORDER BY name');

@@ -90,3 +90,14 @@ contrib/  web server examples
 ## License
 
 MIT
+
+## Live mode
+
+Each device has a **Live** tab that reads CPU, memory, load and interface traffic straight from the device every 1–5 s and draws the last 5 minutes. Nothing is stored.
+
+- **Stream** uses Server-Sent Events (`public/live.php`): one connection per viewer. Each stream holds a PHP worker, so at most `live_streams` (default 4) run at once and each lasts `live_stream_secs` (default 300 s; the browser reconnects).
+- **Poll** sends one short request per sample (`api.php?a=live`) and has no worker cost.
+- When a stream is refused or the server buffers it, the page falls back to polling on its own. To stream on lighttpd, set `server.stream-response-body = 2` for `live.php` (included in `contrib/lighttpd-tidewatch.conf`). On nginx, use `fastcgi_buffering off`.
+- Live views pause after 15 minutes.
+
+Other pages refresh every 20 s and redraw only when the poller has stored new samples.
