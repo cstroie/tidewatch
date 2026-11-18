@@ -37,9 +37,9 @@ function device_form(?array $d = null): void
     <label class="check"><input type="checkbox" name="public" value="1" <?= $d['public'] ? 'checked' : '' ?>> Show on public status page</label>
     <?php if (!$d['id']): ?><label class="check"><input type="checkbox" name="discover" value="1" checked> Discover metrics now</label><?php endif ?>
   </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+    <?php if ($d['id']): ?><button class="btn btn-danger" form="deldev">Delete device</button><?php endif ?>
     <button class="btn"><?= $d['id'] ? 'Save' : 'Add device' ?></button>
-    <?php if ($d['id']): ?><button class="btn btn-danger" form="deldev" style="margin-left:auto">Delete device</button><?php endif ?>
   </div>
 </form>
 <?php if ($d['id']): ?>

@@ -9,7 +9,7 @@ page_start($d['name'], 'dashboards');
 <div class="page-head">
   <div><h1><?= e($d['name']) ?></h1><div class="sub"><?= $d['public'] ? 'Visible on the public page' : 'Private' ?></div></div>
   <div class="actions">
-    <span data-edit-only hidden><button class="btn btn-sm" data-add>+ Panel</button> <button class="btn btn-sm" data-save>Save layout</button> <button class="btn btn-ghost btn-sm" data-cancel>Cancel</button></span>
+    <span data-edit-only hidden><button class="btn btn-sm" data-add>+ Panel</button> <button class="btn btn-ghost btn-sm" data-cancel>Cancel</button> <button class="btn btn-sm" data-save>Save layout</button></span>
     <button class="btn btn-ghost btn-sm" data-edit>Edit</button>
   </div>
 </div>

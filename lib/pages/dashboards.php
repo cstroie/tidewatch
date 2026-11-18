@@ -55,8 +55,8 @@ page_start('Dashboards', 'dashboards');
       <?= csrf_field() ?><input type="hidden" name="act" value="update"><input type="hidden" name="id" value="<?= $d['id'] ?>">
       <input type="text" name="name" value="<?= e($d['name']) ?>" style="flex:1;min-width:140px">
       <label class="check" style="margin:0"><input type="checkbox" name="public" value="1" <?= $d['public'] ? 'checked' : '' ?>> Public</label>
-      <button class="btn btn-ghost btn-sm">Save</button>
       <button class="btn btn-ghost btn-sm" form="deld<?= $d['id'] ?>">Delete</button>
+      <button class="btn btn-sm">Save</button>
     </form>
     <form id="deld<?= $d['id'] ?>" method="post" data-confirm="Delete dashboard “<?= e($d['name']) ?>”?"><?= csrf_field() ?><input type="hidden" name="act" value="delete"><input type="hidden" name="id" value="<?= $d['id'] ?>"></form>
   </div>
