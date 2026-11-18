@@ -3,6 +3,7 @@ declare(strict_types=1);
 // Usage:
 //   php bin/discover.php <device_id>
 //   php bin/discover.php --add <name> <host> [community=public] [version=2c] [port=161]
+//   php bin/discover.php --add-prom <name> <host> [port=80] [path=/metrics] [interval=300]
 //   php bin/discover.php --list
 if (PHP_SAPI !== 'cli') exit(1);
 require dirname(__DIR__) . '/lib/discover.php';
@@ -14,7 +15,16 @@ if (($a[0] ?? '') === '--list') {
     }
     exit(0);
 }
-if (($a[0] ?? '') === '--add') {
+if (($a[0] ?? '') === '--add-prom') {
+    if (count($a) < 3) {
+        fwrite(STDERR, "need name and host\n");
+        exit(1);
+    }
+    db_exec("INSERT INTO devices (name, host, port, type, path, poll_interval) VALUES (?,?,?,'prom',?,?)",
+        [$a[1], $a[2], (int)($a[3] ?? 80), '/' . ltrim($a[4] ?? '/metrics', '/'), max(60, (int)($a[5] ?? 300))]);
+    $id = (int)db()->lastInsertId();
+    echo "Added Prometheus device $id\n";
+} elseif (($a[0] ?? '') === '--add') {
     if (count($a) < 3) {
         fwrite(STDERR, "need name and host\n");
         exit(1);
@@ -26,7 +36,7 @@ if (($a[0] ?? '') === '--add') {
 } elseif (ctype_digit($a[0] ?? '')) {
     $id = (int)$a[0];
 } else {
-    fwrite(STDERR, "usage: discover.php <id> | --add name host [community] [version] [port] | --list\n");
+    fwrite(STDERR, "usage: discover.php <id> | --add name host [community] [version] [port] | --add-prom name host [port] [path] [interval] | --list\n");
     exit(1);
 }
 try {

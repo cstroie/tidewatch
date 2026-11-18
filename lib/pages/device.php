@@ -6,6 +6,10 @@ if (!$dev) {
 }
 $tab = (string)($_GET['tab'] ?? 'system');
 $self = "app.php?p=device&id=$id";
+$prom = ($dev['type'] ?? 'snmp') === 'prom';
+if (!isset($_GET['tab']) && $prom) {
+    $tab = 'sensors';
+}
 
 // ---- actions ----
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
@@ -19,7 +23,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         flash('Metrics saved.');
         redirect("$self&tab=metrics");
     }
-    if ($act === 'custom') {
+    if ($act === 'custom' && !$prom) {
         $oid = oid_norm((string)($_POST['oid'] ?? ''));
         if (!preg_match('/^\d+(\.\d+)+$/', $oid)) {
             flash('OID must be numeric, e.g. 1.3.6.1.4.1.2021.4.6.0', 'err');
@@ -67,12 +71,16 @@ $last = latest_values(array_column($metrics, 'id'));
 $en = fn($k) => array_values(array_filter($byKind[$k] ?? [], fn($m) => $m['enabled']));
 $ids = fn(array $ms) => implode(',', array_column($ms, 'id'));
 
-$tabs = ['system' => 'System', 'live' => 'Live', 'interfaces' => 'Interfaces', 'sensors' => 'Sensors & supplies', 'metrics' => 'Metrics', 'settings' => 'Settings'];
+$tabs = $prom ? ['sensors' => 'Sensors', 'metrics' => 'Metrics', 'settings' => 'Settings']
+    : ['system' => 'System', 'live' => 'Live', 'interfaces' => 'Interfaces', 'sensors' => 'Sensors & supplies', 'metrics' => 'Metrics', 'settings' => 'Settings'];
+if (!isset($tabs[$tab])) {
+    $tab = $prom ? 'sensors' : 'system';
+}
 page_start($dev['name'], 'devices');
 ?>
 <div class="page-head">
   <?= device_badge($dev, 'lg') ?>
-  <div style="min-width:0"><h1><?= e($dev['name']) ?></h1><div class="sub"><?= e($dev['host']) ?> · SNMP v<?= e($dev['version']) ?> · up <?= e(fmt_uptime($dev['uptime'] ? (int)$dev['uptime'] : null)) ?> · polled <?= e(fmt_ago($dev['last_poll'] ? (int)$dev['last_poll'] : null)) ?></div></div>
+  <div style="min-width:0"><h1><?= e($dev['name']) ?></h1><div class="sub"><?php if ($prom): require_once dirname(__DIR__) . '/prom.php'; ?><?= e(prom_url($dev)) ?> · every <?= (int)$dev['poll_interval'] ?>s<?php else: ?><?= e($dev['host']) ?> · SNMP v<?= e($dev['version']) ?> · up <?= e(fmt_uptime($dev['uptime'] ? (int)$dev['uptime'] : null)) ?><?php endif ?> · polled <?= e(fmt_ago($dev['last_poll'] ? (int)$dev['last_poll'] : null)) ?></div></div>
   <div class="actions"><?= in_array($tab, ['system', 'interfaces', 'sensors'], true) ? range_picker() : '' ?></div>
 </div>
 <?= flash() ?>
@@ -155,6 +163,13 @@ page_start($dev['name'], 'devices');
     $sens = $en('sensor'); $sup = $en('supply'); $pages = $en('pages');
     $groups = [];
     foreach ($sens as $m) { $groups[$m['unit'] ?: '—'][] = $m; }
+    if ($prom) { // many series per unit: split into charts of 6
+        $chunks = [];
+        foreach ($groups as $u => $ms) {
+            foreach (array_chunk($ms, 6) as $n => $c) { $chunks[$u . ($n ? ' (' . ($n + 1) . ')' : '')] = $c; }
+        }
+        $groups = $chunks;
+    }
 ?>
   <?php if ($sup || $sens): ?>
   <div class="card" style="margin-bottom:16px">
@@ -194,7 +209,7 @@ page_start($dev['name'], 'devices');
   </form>
   <?php foreach ($metrics as $m): ?><form id="del<?= $m['id'] ?>" method="post" data-confirm="Delete this metric and all its history?" class="inline"><?= csrf_field() ?><input type="hidden" name="act" value="delete_metric"><input type="hidden" name="mid" value="<?= $m['id'] ?>"></form><?php endforeach ?>
   <div class="grid grid-2">
-    <form method="post" class="card">
+    <?php if (!$prom): ?><form method="post" class="card">
       <?= csrf_field() ?><input type="hidden" name="act" value="custom">
       <h3>Add custom OID</h3>
       <div class="form-grid">
@@ -205,11 +220,11 @@ page_start($dev['name'], 'devices');
         <div class="field"><label>Scale</label><input type="number" step="any" name="scale" value="1"><div class="hint">Multiplier applied to the value (e.g. 8 for bytes → bits).</div></div>
       </div>
       <button class="btn">Add metric</button>
-    </form>
+    </form><?php endif ?>
     <form method="post" class="card">
       <?= csrf_field() ?><input type="hidden" name="act" value="discover">
       <h3>Rediscover</h3>
-      <p class="muted">Walk the device again and add any new interfaces, storage, sensors or supplies. Existing metrics and your edits are kept.</p>
+      <p class="muted"><?= $prom ? 'Fetch the metrics page again and add any new series.' : 'Walk the device again and add any new interfaces, storage, sensors or supplies.' ?> Existing metrics and your edits are kept.</p>
       <button class="btn btn-ghost">Run discovery</button>
     </form>
   </div>

@@ -17,6 +17,9 @@ return [
     'snmp_timeout' => 1.0,   // seconds
     'snmp_retries' => 1,
 
+    // Prometheus /metrics sources: HTTP timeout in seconds
+    'http_timeout' => 5,
+
     // Collector
     'poll_workers' => 8,
     // live mode (device "Live" tab): max concurrent SSE streams (each holds one PHP worker) and stream lifetime

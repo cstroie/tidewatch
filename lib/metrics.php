@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/snmp.php';
+require_once __DIR__ . '/prom.php';
 require_once __DIR__ . '/discover.php';
 require_once __DIR__ . '/alerts.php';
 
@@ -11,6 +12,10 @@ function poll_device(array $dev): void
     $now = time();
     $id = (int)$dev['id'];
     $metrics = db_all('SELECT * FROM metrics WHERE device_id=? AND enabled=1', [$id]);
+    if (($dev['type'] ?? 'snmp') === 'prom') {
+        poll_prom($dev, $metrics, $now);
+        return;
+    }
 
     $oids = [OID_UPTIME, OID_SYSNAME, OID_SYSCONTACT, OID_SYSLOCATION];
     foreach ($metrics as $m) {
@@ -49,6 +54,43 @@ function poll_device(array $dev): void
         : 'REPLACE INTO samples_raw (metric_id, ts, value) VALUES (?,?,?)');
     foreach ($metrics as $m) {
         $v = metric_value($m, $vals, $now, $rebooted);
+        if ($v === null) {
+            continue;
+        }
+        $ins->execute([$m['id'], $now, $v]);
+        alert_metric($dev, $m, $v);
+    }
+    $pdo->commit();
+}
+
+/** Poll a Prometheus /metrics device: up/down is HTTP success, values are keyed by series. */
+function poll_prom(array $dev, array $metrics, int $now): void
+{
+    $id = (int)$dev['id'];
+    try {
+        $series = prom_read($dev);
+    } catch (Throwable $e) {
+        $series = [];
+    }
+    if (!$series) {
+        db_exec("UPDATE devices SET status='down', last_poll=? WHERE id=?", [$now, $id]);
+        alert_device($dev, 'down');
+        return;
+    }
+    db_exec("UPDATE devices SET status='up', last_poll=? WHERE id=?", [$now, $id]);
+    alert_device($dev, 'up');
+
+    $vals = [];
+    foreach ($series as $k => $s) {
+        $vals[$k] = (string)$s['value'];
+    }
+    $pdo = db();
+    $pdo->beginTransaction();
+    $ins = $pdo->prepare(db_is_sqlite()
+        ? 'INSERT OR REPLACE INTO samples_raw (metric_id, ts, value) VALUES (?,?,?)'
+        : 'REPLACE INTO samples_raw (metric_id, ts, value) VALUES (?,?,?)');
+    foreach ($metrics as $m) {
+        $v = metric_value($m, $vals, $now, false);
         if ($v === null) {
             continue;
         }

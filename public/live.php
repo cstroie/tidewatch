@@ -12,7 +12,7 @@ if (!is_admin()) {
 session_write_close(); // do not hold the session lock for the life of the stream
 
 $dev = db_one('SELECT * FROM devices WHERE id = ? AND enabled = 1', [(int)($_GET['d'] ?? 0)]);
-if (!$dev) {
+if (!$dev || ($dev['type'] ?? 'snmp') !== 'snmp') { // live mode reads over SNMP only
     http_response_code(404);
     exit;
 }

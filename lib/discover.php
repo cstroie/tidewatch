@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/snmp.php';
+require_once __DIR__ . '/prom.php';
 
 const OID_SYSDESCR = '1.3.6.1.2.1.1.1.0';
 const OID_UPTIME   = '1.3.6.1.2.1.1.3.0';
@@ -24,6 +25,9 @@ function discover_device(int $id): int
     $dev = db_one('SELECT * FROM devices WHERE id=?', [$id]);
     if (!$dev) {
         throw new InvalidArgumentException("No device $id");
+    }
+    if (($dev['type'] ?? 'snmp') === 'prom') {
+        return discover_prom($dev);
     }
     $s = snmp_open($dev);
     $sys = $s->get([OID_SYSDESCR, OID_SYSNAME, OID_SYSCONTACT, OID_SYSLOCATION, OID_UPTIME]);
@@ -171,6 +175,28 @@ function discover_device(int $id): int
             }
         }
         $ins->execute([$id, $r['kind'], $r['oid'], $r['label'], $r['unit'], $r['type'], $r['scale'], $r['warn'], $r['crit']]);
+        $added++;
+    }
+    log_event('info', "Discovery: $added new metrics", $id);
+    return $added;
+}
+
+/** Create one metric per numeric series exposed by a Prometheus device. Existing series are kept. */
+function discover_prom(array $dev): int
+{
+    $id = (int)$dev['id'];
+    $series = prom_read($dev);
+    if (!$series) {
+        throw new RuntimeException('No metrics returned from ' . prom_url($dev));
+    }
+    $added = 0;
+    $ins = db()->prepare('INSERT INTO metrics (device_id, kind, oid, label, unit, type, scale) VALUES (?,?,?,?,?,?,1)');
+    foreach ($series as $key => $s) {
+        if (strlen($key) > 255 || db_val('SELECT 1 FROM metrics WHERE device_id=? AND oid=?', [$id, $key])) {
+            continue;
+        }
+        [$label, $unit] = prom_describe($s);
+        $ins->execute([$id, 'sensor', $key, mb_substr($label, 0, 255), $unit, prom_metric_type($s)]);
         $added++;
     }
     log_event('info', "Discovery: $added new metrics", $id);

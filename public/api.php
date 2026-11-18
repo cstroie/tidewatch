@@ -80,7 +80,7 @@ switch ($a) {
         require_once dirname(__DIR__) . '/lib/live.php';
         $in = json_decode((string)file_get_contents('php://input'), true) ?: [];
         $dev = db_one('SELECT * FROM devices WHERE id = ? AND enabled = 1', [(int)($in['d'] ?? 0)]);
-        if (!$dev) {
+        if (!$dev || ($dev['type'] ?? 'snmp') !== 'snmp') {
             out(['error' => 'no such device'], 404);
         }
         $ms = live_metrics((int)$dev['id'], array_map('intval', (array)($in['m'] ?? [])));

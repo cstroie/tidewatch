@@ -11,6 +11,9 @@ CREATE TABLE IF NOT EXISTS devices (
   enabled INTEGER NOT NULL DEFAULT 1,
   public INTEGER NOT NULL DEFAULT 0,
   icon TEXT,
+  type TEXT NOT NULL DEFAULT 'snmp',
+  scheme TEXT NOT NULL DEFAULT 'http',
+  path TEXT NOT NULL DEFAULT '/metrics',
   status TEXT NOT NULL DEFAULT 'unknown',
   last_poll INTEGER, sysdescr TEXT, sysname TEXT, syscontact TEXT, syslocation TEXT, uptime INTEGER
 );

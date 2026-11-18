@@ -12,13 +12,20 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             flash('Name and a valid host/IP are required.', 'err');
             redirect($id ? "app.php?p=device&id=$id&tab=settings" : 'app.php?p=devices');
         }
+        $prom = $id ? db_val('SELECT type FROM devices WHERE id = ?', [$id]) === 'prom' : ($_POST['type'] ?? '') === 'prom';
+        $path = '/' . ltrim((string)$f('path', '/metrics'), '/');
+        if ($prom && (preg_match('#[\s"<>]#', $path) || strlen($path) > 255)) {
+            flash('Invalid metrics path.', 'err');
+            redirect($id ? "app.php?p=device&id=$id&tab=settings" : 'app.php?p=devices');
+        }
         $row = [
-            'name' => $name, 'host' => $host, 'port' => max(1, min(65535, (int)$f('port', 161))),
+            'type' => $prom ? 'prom' : 'snmp', 'scheme' => ($_POST['scheme'] ?? '') === 'https' ? 'https' : 'http', 'path' => $path,
+            'name' => $name, 'host' => $host, 'port' => max(1, min(65535, (int)$f('port', $prom ? 80 : 161))),
             'version' => in_array($_POST['version'] ?? '', ['1', '2c', '3'], true) ? $_POST['version'] : '2c',
             'community' => $f('community', 'public'),
             'v3_user' => $f('v3_user'), 'v3_level' => $f('v3_level', 'authPriv'),
             'v3_auth_proto' => $f('v3_auth_proto', 'SHA'), 'v3_priv_proto' => $f('v3_priv_proto', 'AES'),
-            'poll_interval' => max(60, (int)$f('poll_interval', 60)),
+            'poll_interval' => max(60, (int)$f('poll_interval', $prom ? 300 : 60)),
             'enabled' => empty($_POST['enabled']) ? 0 : 1, 'public' => empty($_POST['public']) ? 0 : 1,
             'icon' => isset(DEVICE_ICONS[$_POST['icon'] ?? '']) ? $_POST['icon'] : null,
         ];
@@ -40,7 +47,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             try {
                 flash("Device added; discovered " . discover_device($id) . ' metrics.');
             } catch (Throwable $e) {
-                flash('Device added, but discovery failed: ' . $e->getMessage() . '. Check host, community and firewall, then rediscover.', 'err');
+                flash('Device added, but discovery failed: ' . $e->getMessage() . '. Check host, credentials/URL and firewall, then rediscover.', 'err');
             }
         } else {
             flash('Device added.');
@@ -67,14 +74,14 @@ page_start('Devices', 'devices');
   <div class="actions"><a class="btn btn-sm" href="#add">+ Add device</a></div></div>
 <?= flash() ?>
 <div class="card flush" style="margin-bottom:20px"><div class="table-wrap"><table class="tbl">
-  <thead><tr><th></th><th>Name</th><th>Host</th><th>SNMP</th><th class="num">Metrics</th><th>Uptime</th><th>Last poll</th><th>Public</th></tr></thead>
+  <thead><tr><th></th><th>Name</th><th>Host</th><th>Type</th><th class="num">Metrics</th><th>Uptime</th><th>Last poll</th><th>Public</th></tr></thead>
   <tbody>
   <?php foreach ($devices as $d): ?>
     <tr style="<?= $d['enabled'] ? '' : 'opacity:.5' ?>">
       <td><?= device_badge($d['enabled'] ? $d : ['status' => 'unknown'] + $d, 'sm') ?></td>
       <td><a href="app.php?p=device&id=<?= $d['id'] ?>"><b><?= e($d['name']) ?></b></a><div class="small muted" style="max-width:320px;overflow:hidden;text-overflow:ellipsis"><?= e($d['sysdescr']) ?></div><?php if (!empty($d['syslocation'])): ?><div class="small muted"><?= e($d['syslocation']) ?></div><?php endif ?></td>
-      <td class="mono"><?= e($d['host']) ?><?= (int)$d['port'] !== 161 ? ':' . (int)$d['port'] : '' ?></td>
-      <td>v<?= e($d['version']) ?></td>
+      <td class="mono"><?= e($d['host']) ?><?= (int)$d['port'] !== (($d['type'] ?? 'snmp') === 'prom' ? 80 : 161) ? ':' . (int)$d['port'] : '' ?></td>
+      <td><?= ($d['type'] ?? 'snmp') === 'prom' ? 'Prometheus' : 'v' . e($d['version']) ?></td>
       <td class="num"><?= (int)$d['nm'] ?></td>
       <td><?= e(fmt_uptime($d['uptime'] ? (int)$d['uptime'] : null)) ?></td>
       <td><?= e(fmt_ago($d['last_poll'] ? (int)$d['last_poll'] : null)) ?></td>

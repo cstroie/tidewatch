@@ -71,11 +71,22 @@ Reload lighttpd and open `http://<host>/tidewatch/`.
 
 ```sh
 php bin/discover.php --add core-sw 192.168.1.1 public 2c   # add a device and discover it
+php bin/discover.php --add-prom esp 10.0.0.5 80 /metrics 300  # add a Prometheus source and discover it
 php bin/discover.php 3                                      # rediscover device 3
 php bin/discover.php --list
 php bin/poll.php -f -v                                      # poll everything now, verbose
 php bin/passwd.php                                          # change the admin password
 ```
+
+## Prometheus sources
+
+Besides SNMP, a device can be a Prometheus text-format endpoint (e.g. ESPEasy's `/metrics`). Choose
+**Type: Prometheus** when adding a device and give host, port (default 80), path (default `/metrics`) and
+scheme. The default poll interval is 300 s (minimum 60 s). Discovery creates one metric per numeric series,
+keyed by `name{label="value"}`. `# TYPE counter` series are stored as per-second rates (except uptime-like
+ones, kept as levels). The device is *up* when the page answers with HTTP 200 and at least one series;
+the timeout is `http_timeout` in `config.php`. Prometheus devices appear on the device's *Sensors* tab and
+can be put on dashboards; Live mode is SNMP-only. Use *Run discovery* on the Metrics tab to pick up new series.
 
 ## Layout
 

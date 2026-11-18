@@ -11,6 +11,9 @@ CREATE TABLE IF NOT EXISTS devices (
   enabled TINYINT NOT NULL DEFAULT 1,
   public TINYINT NOT NULL DEFAULT 0,
   icon VARCHAR(16),
+  type VARCHAR(8) NOT NULL DEFAULT 'snmp',
+  scheme VARCHAR(5) NOT NULL DEFAULT 'http',
+  path VARCHAR(255) NOT NULL DEFAULT '/metrics',
   status VARCHAR(16) NOT NULL DEFAULT 'unknown',
   last_poll BIGINT, sysdescr TEXT, sysname VARCHAR(255), syscontact TEXT, syslocation TEXT, uptime BIGINT
 ) ENGINE=InnoDB;

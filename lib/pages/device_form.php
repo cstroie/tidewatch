@@ -3,25 +3,31 @@
 function device_form(?array $d = null): void
 {
     $d = $d ?? ['id' => '', 'name' => '', 'host' => '', 'port' => 161, 'version' => '2c', 'community' => 'public', 'v3_user' => '', 'v3_level' => 'authPriv',
-        'v3_auth_proto' => 'SHA', 'v3_auth_pass' => '', 'v3_priv_proto' => 'AES', 'v3_priv_pass' => '', 'poll_interval' => 60, 'enabled' => 1, 'public' => 0, 'icon' => null, 'sysdescr' => null];
+        'v3_auth_proto' => 'SHA', 'v3_auth_pass' => '', 'v3_priv_proto' => 'AES', 'v3_priv_pass' => '', 'poll_interval' => 60, 'enabled' => 1, 'public' => 0, 'icon' => null, 'sysdescr' => null, 'type' => 'snmp', 'scheme' => 'http', 'path' => '/metrics'];
+    $d += ['type' => 'snmp', 'scheme' => 'http', 'path' => '/metrics'];
     $sel = fn($a, $b) => (string)$a === (string)$b ? 'selected' : '';
     ?>
 <form method="post" action="app.php?p=devices" class="card">
   <?= csrf_field() ?><input type="hidden" name="act" value="save"><input type="hidden" name="id" value="<?= e($d['id']) ?>">
   <h3><?= $d['id'] ? 'Device settings' : 'Add device' ?></h3>
   <div class="form-grid">
+    <div class="field"><label>Type</label><select name="type" data-type <?= $d['id'] ? 'disabled' : '' ?>>
+      <option value="snmp" <?= $sel($d['type'], 'snmp') ?>>SNMP</option><option value="prom" <?= $sel($d['type'], 'prom') ?>>Prometheus /metrics</option></select>
+      <?php if ($d['id']): ?><input type="hidden" name="type" value="<?= e($d['type']) ?>"><?php endif ?></div>
     <div class="field"><label>Name</label><input type="text" name="name" required value="<?= e($d['name']) ?>" placeholder="core-switch"></div>
     <div class="field"><label>Host / IP</label><input type="text" name="host" required value="<?= e($d['host']) ?>" placeholder="192.168.1.1"></div>
-    <div class="field"><label>Port</label><input type="number" name="port" value="<?= e($d['port']) ?>"></div>
-    <div class="field"><label>SNMP version</label><select name="version" data-snmpver>
+    <div class="field"><label>Port</label><input type="number" name="port" data-port value="<?= e($d['port']) ?>"></div>
+    <div class="field" data-prom><label>Scheme</label><select name="scheme"><option value="http" <?= $sel($d['scheme'], 'http') ?>>http</option><option value="https" <?= $sel($d['scheme'], 'https') ?>>https</option></select></div>
+    <div class="field" data-prom><label>Path</label><input type="text" name="path" value="<?= e($d['path']) ?>" placeholder="/metrics" class="mono"></div>
+    <div class="field" data-snmp><label>SNMP version</label><select name="version" data-snmpver>
       <option value="1" <?= $sel($d['version'], '1') ?>>v1</option><option value="2c" <?= $sel($d['version'], '2c') ?>>v2c</option><option value="3" <?= $sel($d['version'], '3') ?>>v3</option></select></div>
-    <div class="field" data-v12><label>Community</label><input type="text" name="community" value="<?= e($d['community']) ?>" autocomplete="off"></div>
+    <div class="field" data-snmp data-v12><label>Community</label><input type="text" name="community" value="<?= e($d['community']) ?>" autocomplete="off"></div>
     <div class="field"><label>Icon</label><select name="icon">
       <option value="">Auto (<?= e(DEVICE_ICONS[device_icon_guess($d['sysdescr'] ?? null)]) ?>)</option>
       <?php foreach (DEVICE_ICONS as $k => $l): ?><option value="<?= $k ?>" <?= $sel($d['icon'] ?? '', $k) ?>><?= e($l) ?></option><?php endforeach ?></select></div>
-    <div class="field"><label>Poll interval (s)</label><input type="number" name="poll_interval" min="60" step="60" value="<?= e($d['poll_interval']) ?>"></div>
+    <div class="field"><label>Poll interval (s)</label><input type="number" name="poll_interval" data-interval min="60" step="60" value="<?= e($d['poll_interval']) ?>"></div>
   </div>
-  <div class="form-grid" data-v3>
+  <div class="form-grid" data-snmp data-v3>
     <div class="field"><label>v3 user</label><input type="text" name="v3_user" value="<?= e($d['v3_user']) ?>" autocomplete="off"></div>
     <div class="field"><label>Security level</label><select name="v3_level">
       <?php foreach (['noAuthNoPriv', 'authNoPriv', 'authPriv'] as $l): ?><option <?= $sel($d['v3_level'], $l) ?>><?= $l ?></option><?php endforeach ?></select></div>
