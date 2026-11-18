@@ -9,6 +9,11 @@
     return function (u, vals) { return vals.map(function (v) { return v == null ? '' : TW.fmt(v, unit === '%' ? '%' : unit || '').replace(' ', ''); }); };
   }
 
+  function showLatest(u) {
+    var n = u.data[0].length;
+    if (n) u.setLegend({ idx: n - 1 }, false);
+  }
+
   function opts(el, data) {
     var unit = (data.series[0] && data.series[0].unit) || '';
     var grid = TW.css('--grid'), text = TW.css('--muted');
@@ -29,6 +34,11 @@
       series: series,
       cursor: { points: { size: 6 }, drag: { x: true, y: false } },
       legend: { show: el.dataset.legend !== '0' },
+      // Show the latest sample in the legend while the cursor is off the plot
+      hooks: {
+        ready: [showLatest],
+        setCursor: [function (u) { if (u.cursor.idx == null) showLatest(u); }]
+      },
       scales: { x: { time: true }, y: { range: function (u, min, max) { return [Math.min(0, min), unit === '%' ? Math.max(100, max) : (max > 0 ? max * 1.08 : 1)]; } } },
       axes: [Object.assign({}, ax), Object.assign({ size: 66, values: axisFmt(unit) }, ax)]
     };
