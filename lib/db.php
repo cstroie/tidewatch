@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+// Group-writable files so cron (owner) and the web server (group) share the SQLite DB/WAL.
+umask(0007);
+
 function config(?string $key = null, $default = null)
 {
     static $cfg = null;
