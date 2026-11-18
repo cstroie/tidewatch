@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS devices (
   poll_interval INT NOT NULL DEFAULT 60,
   enabled TINYINT NOT NULL DEFAULT 1,
   public TINYINT NOT NULL DEFAULT 0,
+  icon VARCHAR(16),
   status VARCHAR(16) NOT NULL DEFAULT 'unknown',
   last_poll BIGINT, sysdescr TEXT, sysname VARCHAR(255), uptime BIGINT
 ) ENGINE=InnoDB;

@@ -4,7 +4,7 @@ require dirname(__DIR__) . '/lib/view.php';
 require dirname(__DIR__) . '/lib/data.php';
 
 // Public page: no hosts, IPs, descriptions or configuration are shown here.
-$devices = db_all('SELECT id, name, status, last_poll, uptime FROM devices WHERE enabled = 1 AND public = 1 ORDER BY name');
+$devices = db_all('SELECT id, name, status, last_poll, uptime, icon, sysdescr FROM devices WHERE enabled = 1 AND public = 1 ORDER BY name');
 $dashboards = db_all('SELECT id, name, layout_json FROM dashboards WHERE public = 1 ORDER BY name');
 $dashId = (int)($_GET['d'] ?? 0);
 $dash = null;
@@ -41,7 +41,7 @@ endif;
 <div class="grid grid-tiles" style="margin-bottom:24px">
   <?php foreach ($devices as $d): ?>
     <div class="tile <?= $d['status'] === 'down' ? 'is-down' : '' ?>">
-      <?= status_dot($d['status']) ?>
+      <?= device_badge($d, 'sm') ?>
       <div style="min-width:0"><div class="t-name"><?= e($d['name']) ?></div>
         <div class="t-sub"><?= $d['status'] === 'up' ? 'up ' . e(fmt_uptime($d['uptime'] ? (int)$d['uptime'] : null)) : e($d['status']) . ($d['last_poll'] ? ' · ' . e(fmt_ago((int)$d['last_poll'])) : '') ?></div></div>
     </div>

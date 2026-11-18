@@ -32,7 +32,7 @@ page_start('Overview', 'overview');
 ?>
   <a class="card dev-card <?= $d['status'] === 'down' ? 'is-down' : '' ?>" href="app.php?p=device&id=<?= $d['id'] ?>">
     <div class="top">
-      <?= status_dot($d['status']) ?>
+      <?= device_badge($d) ?>
       <div style="min-width:0">
         <div class="name"><?= e($d['name']) ?></div>
         <div class="desc"><?= e($d['sysdescr'] ?: $d['host']) ?></div>

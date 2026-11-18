@@ -71,7 +71,7 @@ $tabs = ['system' => 'System', 'interfaces' => 'Interfaces', 'sensors' => 'Senso
 page_start($dev['name'], 'devices');
 ?>
 <div class="page-head">
-  <?= status_dot($dev['status']) ?>
+  <?= device_badge($dev, 'lg') ?>
   <div style="min-width:0"><h1><?= e($dev['name']) ?></h1><div class="sub"><?= e($dev['host']) ?> · SNMP v<?= e($dev['version']) ?> · up <?= e(fmt_uptime($dev['uptime'] ? (int)$dev['uptime'] : null)) ?> · polled <?= e(fmt_ago($dev['last_poll'] ? (int)$dev['last_poll'] : null)) ?></div></div>
   <div class="actions"><?= in_array($tab, ['system', 'interfaces', 'sensors'], true) ? range_picker() : '' ?></div>
 </div>

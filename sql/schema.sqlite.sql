@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS devices (
   poll_interval INTEGER NOT NULL DEFAULT 60,
   enabled INTEGER NOT NULL DEFAULT 1,
   public INTEGER NOT NULL DEFAULT 0,
+  icon TEXT,
   status TEXT NOT NULL DEFAULT 'unknown',
   last_poll INTEGER, sysdescr TEXT, sysname TEXT, uptime INTEGER
 );

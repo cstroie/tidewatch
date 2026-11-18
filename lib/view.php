@@ -33,6 +33,16 @@ function icon(string $name): string
         'moon'   => '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
         'menu'   => '<path d="M4 6h16M4 12h16M4 18h16"/>',
         'out'    => '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
+        'desktop'=> '<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>',
+        'laptop' => '<rect x="4" y="4" width="16" height="11" rx="1.5"/><path d="M2 19h20"/>',
+        'router' => '<rect x="2" y="13" width="20" height="8" rx="2"/><path d="M6 17h.01M10 17h.01M17 13V8M14.5 5.5a3.5 3.5 0 0 1 5 0M12.4 3.4a6.5 6.5 0 0 1 9.2 0"/>',
+        'switch' => '<rect x="2" y="7" width="20" height="10" rx="2"/><path d="M6 12h.01M9 12h.01M12 12h.01M15 12h.01M18 12h.01"/>',
+        'printer'=> '<path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><rect x="6" y="14" width="12" height="7" rx="1"/>',
+        'nas'    => '<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h8"/><circle cx="12" cy="16" r="2"/>',
+        'sbc'    => '<rect x="6" y="6" width="12" height="12" rx="1.5"/><rect x="9.5" y="9.5" width="5" height="5" rx=".5"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/>',
+        'radio'  => '<circle cx="12" cy="9" r="2"/><path d="M12 11v11M8.5 5.5a5 5 0 0 0 0 7M15.5 5.5a5 5 0 0 1 0 7M5.6 2.6a9 9 0 0 0 0 12.8M18.4 2.6a9 9 0 0 1 0 12.8"/>',
+        'ap'     => '<path d="M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M2 8.8a15 15 0 0 1 20 0M12 20h.01"/>',
+        'ups'    => '<rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 11v2M11.5 9.5 9 12.5h4l-2.5 3"/>',
         'globe'  => '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
     ];
     return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' . ($p[$name] ?? '') . '</svg>';
@@ -137,6 +147,49 @@ function range_picker(): string
         $h .= '<button type="button" data-range="' . $r . '">' . $r . '</button>';
     }
     return $h . '</div>';
+}
+
+const DEVICE_ICONS = ['server' => 'Server', 'desktop' => 'Desktop / thin client', 'laptop' => 'Laptop', 'sbc' => 'Single-board / embedded',
+    'router' => 'Router', 'switch' => 'Switch', 'ap' => 'Wireless AP', 'nas' => 'NAS / storage', 'printer' => 'Printer',
+    'radio' => 'Radio / SDR', 'ups' => 'UPS / power'];
+
+/** Best guess of a device icon from its sysDescr. */
+function device_icon_guess(?string $descr): string
+{
+    $d = (string)$descr;
+    $rules = [
+        'printer' => '/printer|printing system|kyocera|laserjet|officejet|brother|epson|canon|ricoh|lexmark|xerox|konica/i',
+        'router'  => '/openwrt|lede|routeros|mikrotik|edgeos|pfsense|opnsense|vyos|dd-wrt|fritz!?box/i',
+        'ap'      => '/unifi|access point|airos|aironet/i',
+        'switch'  => '/switch|procurve|catalyst|junos|netgear gs|tl-sg|cisco ios/i',
+        'nas'     => '/synology|diskstation|qnap|truenas|freenas|readynas|nsa3|zyxel nsa/i',
+        'ups'     => '/\bups\b|smart-ups|apc web|eaton/i',
+        'desktop' => '/windows/i',
+        'laptop'  => '/darwin|macos/i',
+        'sbc'     => '/armv\d|aarch64|arm64|raspberry|msm\d|mips/i',
+    ];
+    foreach ($rules as $icon => $re) {
+        if (preg_match($re, $d)) {
+            return $icon;
+        }
+    }
+    return 'server';
+}
+
+function device_icon_name(array $dev): string
+{
+    $i = (string)($dev['icon'] ?? '');
+    return isset(DEVICE_ICONS[$i]) ? $i : device_icon_guess($dev['sysdescr'] ?? null);
+}
+
+/** Icon tile with a status dot in the corner. */
+function device_badge(array $dev, string $size = ''): string
+{
+    $st = $dev['status'] ?? 'unknown';
+    $cls = $st === 'down' ? ' is-down' : ($st === 'up' ? ' is-up' : '');
+    $name = device_icon_name($dev);
+    return '<span class="dev-badge' . $cls . ($size ? " dev-badge-$size" : '') . '" title="' . e(DEVICE_ICONS[$name] . ' · ' . $st) . '">'
+        . icon($name) . status_dot($st) . '</span>';
 }
 
 function status_dot(string $status): string

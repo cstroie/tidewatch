@@ -20,6 +20,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             'v3_auth_proto' => $f('v3_auth_proto', 'SHA'), 'v3_priv_proto' => $f('v3_priv_proto', 'AES'),
             'poll_interval' => max(60, (int)$f('poll_interval', 60)),
             'enabled' => empty($_POST['enabled']) ? 0 : 1, 'public' => empty($_POST['public']) ? 0 : 1,
+            'icon' => isset(DEVICE_ICONS[$_POST['icon'] ?? '']) ? $_POST['icon'] : null,
         ];
         // keep stored passphrases when left blank
         foreach (['v3_auth_pass', 'v3_priv_pass'] as $k) {
@@ -70,7 +71,7 @@ page_start('Devices', 'devices');
   <tbody>
   <?php foreach ($devices as $d): ?>
     <tr style="<?= $d['enabled'] ? '' : 'opacity:.5' ?>">
-      <td><?= status_dot($d['enabled'] ? $d['status'] : 'unknown') ?></td>
+      <td><?= device_badge($d['enabled'] ? $d : ['status' => 'unknown'] + $d, 'sm') ?></td>
       <td><a href="app.php?p=device&id=<?= $d['id'] ?>"><b><?= e($d['name']) ?></b></a><div class="small muted" style="max-width:320px;overflow:hidden;text-overflow:ellipsis"><?= e($d['sysdescr']) ?></div></td>
       <td class="mono"><?= e($d['host']) ?><?= (int)$d['port'] !== 161 ? ':' . (int)$d['port'] : '' ?></td>
       <td>v<?= e($d['version']) ?></td>

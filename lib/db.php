@@ -72,7 +72,8 @@ function db_is_sqlite(): bool
 
 function db_migrate(PDO $pdo): void
 {
-    $version = 1;
+    $version = 2;
+    $cur = 0;
     try {
         $cur = (int)$pdo->query("SELECT v FROM meta WHERE k='schema'")->fetchColumn();
         if ($cur >= $version) {
@@ -81,9 +82,17 @@ function db_migrate(PDO $pdo): void
     } catch (PDOException $e) {
         // fresh database
     }
-    $file = dirname(__DIR__) . '/sql/schema.' . (db_is_sqlite() ? 'sqlite' : 'mysql') . '.sql';
-    foreach (array_filter(array_map('trim', explode(';', file_get_contents($file)))) as $stmt) {
-        $pdo->exec($stmt);
+    if ($cur === 0) {
+        // fresh install: the schema files are always current
+        $file = dirname(__DIR__) . '/sql/schema.' . (db_is_sqlite() ? 'sqlite' : 'mysql') . '.sql';
+        foreach (array_filter(array_map('trim', explode(';', file_get_contents($file)))) as $stmt) {
+            $pdo->exec($stmt);
+        }
+    } else {
+        // incremental upgrades
+        if ($cur < 2) {
+            $pdo->exec('ALTER TABLE devices ADD COLUMN icon ' . (db_is_sqlite() ? 'TEXT' : 'VARCHAR(16)'));
+        }
     }
     db_upsert('meta', ['k' => 'schema', 'v' => (string)$version], ['k'], $pdo);
 }
