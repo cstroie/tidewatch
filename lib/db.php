@@ -44,7 +44,45 @@ function db(): PDO
         $pdo->exec('PRAGMA busy_timeout=5000');
     }
     db_migrate($pdo);
+    $tz = (string)setting('timezone', 'UTC');
+    if (in_array($tz, DateTimeZone::listIdentifiers(), true)) {
+        date_default_timezone_set($tz);
+    }
     return $pdo;
+}
+
+/** Keys the setup wizard may store in the database; a non-empty meta value beats config.php. */
+const DB_SETTINGS = ['admin_hash', 'app_name', 'timezone', 'mail_to', 'mail_from'];
+
+function setting(string $key, $default = null)
+{
+    if (in_array($key, DB_SETTINGS, true)) {
+        $v = db_val('SELECT v FROM meta WHERE k = ?', ['cfg_' . $key]);
+        if ($v !== false && $v !== null && $v !== '') {
+            return $v;
+        }
+    }
+    return config($key, $default);
+}
+
+function setting_set(string $key, string $value): void
+{
+    db_upsert('meta', ['k' => 'cfg_' . $key, 'v' => $value], ['k']);
+}
+
+function setup_needed(): bool
+{
+    return (string)setting('admin_hash', '') === '';
+}
+
+function setup_step(): string
+{
+    return (string)(db_val("SELECT v FROM meta WHERE k = 'setup_step'") ?: (setup_needed() ? 'check' : 'done'));
+}
+
+function setup_step_set(string $step): void
+{
+    db_upsert('meta', ['k' => 'setup_step', 'v' => $step], ['k']);
 }
 
 /**
@@ -72,7 +110,7 @@ function db_is_sqlite(): bool
 
 function db_migrate(PDO $pdo): void
 {
-    $version = 5;
+    $version = 6;
     $cur = 0;
     try {
         $cur = (int)$pdo->query("SELECT v FROM meta WHERE k='schema'")->fetchColumn();
@@ -109,6 +147,9 @@ function db_migrate(PDO $pdo): void
             $pdo->exec('ALTER TABLE metrics ADD COLUMN ov_graph ' . ($t ? 'INTEGER' : 'TINYINT') . ' NOT NULL DEFAULT 0');
             $pdo->exec('ALTER TABLE metrics ADD COLUMN g_min ' . ($t ? 'REAL' : 'DOUBLE'));
             $pdo->exec('ALTER TABLE metrics ADD COLUMN g_max ' . ($t ? 'REAL' : 'DOUBLE'));
+        }
+        if ($cur < 6) { // overview card order, set by drag and drop
+            $pdo->exec('ALTER TABLE devices ADD COLUMN sort ' . (db_is_sqlite() ? 'INTEGER' : 'INT') . ' NOT NULL DEFAULT 0');
         }
     }
     db_upsert('meta', ['k' => 'schema', 'v' => (string)$version], ['k'], $pdo);

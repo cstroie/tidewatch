@@ -25,10 +25,16 @@ sudo apt install php-cli php-sqlite3 php-snmp snmp      # php-mysql for MariaDB
 sudo git clone https://github.com/cstroie/tidewatch.git /var/www/tidewatch   # outside the web docroot
 sudo chown -R $USER:www-data /var/www/tidewatch
 cd /var/www/tidewatch
-php bin/passwd.php                 # creates config.php and sets the admin password
+cp config.php.dist config.php     # optional: defaults are used without it
 ```
 
-Edit `config.php` for the database, SNMP timeouts, retention and alert e-mail.
+Then set up the permissions, web server and cron below, and open `http://<host>/tidewatch/`: a setup wizard
+checks the server, sets the admin password, the name, timezone and alert e-mail, adds a first device and
+shows the cron lines. **Finish it right away**: until the password is set, anyone who reaches the page can
+set it. `php bin/passwd.php` sets the password from the shell instead and skips the wizard.
+
+Settings made in the wizard are kept in the database and take precedence over `config.php`; edit
+`config.php` for the database, SNMP timeouts, retention and the rest.
 
 ### Permissions
 

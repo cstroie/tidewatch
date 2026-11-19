@@ -4,7 +4,7 @@ require_once dirname(__DIR__) . '/lib/view.php';
 require_once dirname(__DIR__) . '/lib/data.php';
 
 // Public page: no hosts, IPs, descriptions or configuration are shown here.
-$devices = db_all('SELECT id, name, status, last_poll, uptime, icon, sysdescr FROM devices WHERE enabled = 1 AND public = 1 ORDER BY name');
+$devices = db_all('SELECT id, name, status, last_poll, uptime, icon, sysdescr FROM devices WHERE enabled = 1 AND public = 1 ORDER BY sort, name');
 $dashboards = db_all('SELECT id, name, layout_json FROM dashboards WHERE public = 1 ORDER BY name');
 $dashId = (int)($_GET['d'] ?? 0);
 $dash = null;
@@ -32,7 +32,7 @@ endif;
 <div class="hero <?= !$devices ? 'is-empty' : ($down ? 'is-bad' : ($warn ? 'is-warn' : '')) ?>">
   <?= $down ? icon('bell') : logo_svg() ?>
   <div>
-    <h1><?= !$devices ? e(config('app_name')) . ' status' : ($down ? count($down) . ' of ' . count($devices) . ' systems down' : ($warn ? 'All systems up, ' . $warn . ' warning' . ($warn > 1 ? 's' : '') : 'All systems operational')) ?></h1>
+    <h1><?= !$devices ? e(setting('app_name', 'Tidewatch')) . ' status' : ($down ? count($down) . ' of ' . count($devices) . ' systems down' : ($warn ? 'All systems up, ' . $warn . ' warning' . ($warn > 1 ? 's' : '') : 'All systems operational')) ?></h1>
     <p>Updated <?= date('H:i') ?> · refreshes every minute</p>
   </div>
 </div>

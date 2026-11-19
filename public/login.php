@@ -2,6 +2,10 @@
 declare(strict_types=1);
 require_once dirname(__DIR__) . '/lib/view.php';
 session_boot();
+if (setup_needed()) {
+    header('Location: setup.php');
+    exit;
+}
 
 if (isset($_GET['logout'])) {
     csrf_check();
@@ -22,7 +26,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         header('Location: ' . $next);
         exit;
     }
-    $error = config('admin_hash') ? 'Wrong password, or too many attempts. Try again shortly.' : 'No admin password set. Run: php bin/passwd.php';
+    $error = 'Wrong password, or too many attempts. Try again shortly.';
 }
 if (is_admin()) {
     header('Location: app.php');
@@ -32,7 +36,7 @@ page_start('Sign in', '', true);
 ?>
 <div class="login-wrap">
   <form class="card login" method="post" autocomplete="off">
-    <div class="brand-big"><?= logo_svg() ?><h1><?= e(config('app_name')) ?></h1><span class="muted small">Administrator sign in</span></div>
+    <div class="brand-big"><?= logo_svg() ?><h1><?= e(setting('app_name', 'Tidewatch')) ?></h1><span class="muted small">Administrator sign in</span></div>
     <?php if ($error): ?><?= notice($error, 'error') ?><?php endif ?>
     <?= csrf_field() ?>
     <input type="hidden" name="next" value="<?= e($next) ?>">

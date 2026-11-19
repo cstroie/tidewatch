@@ -49,18 +49,25 @@ function login_attempt(string $password): bool
     if ($n >= 5 && time() - $ts < 300) {
         return false;
     }
-    $hash = (string)config('admin_hash');
+    $hash = (string)setting('admin_hash', '');
     if ($hash !== '' && password_verify($password, $hash)) {
         db_exec('DELETE FROM meta WHERE k=?', [$key]);
-        session_regenerate_id(true);
-        $_SESSION['admin'] = true;
-        $_SESSION['csrf'] = bin2hex(random_bytes(32));
+        auth_sign_in();
         return true;
     }
     usleep(500000);
     db_upsert('meta', ['k' => $key, 'v' => ($n >= 5 ? 1 : $n + 1) . '|' . time()], ['k']);
     log_event('warn', 'Failed admin login from ' . ($_SERVER['REMOTE_ADDR'] ?? '?'));
     return false;
+}
+
+/** Start an admin session: new session id, admin flag, fresh CSRF token. */
+function auth_sign_in(): void
+{
+    session_boot();
+    session_regenerate_id(true);
+    $_SESSION['admin'] = true;
+    $_SESSION['csrf'] = bin2hex(random_bytes(32));
 }
 
 function logout(): void

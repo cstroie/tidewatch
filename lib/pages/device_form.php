@@ -1,13 +1,13 @@
 <?php
-/** Shared add/edit device form; posts to the devices page. */
-function device_form(?array $d = null): void
+/** Shared add/edit device form; posts to $action (the devices page by default). $extra: more footer buttons, left of the submit. */
+function device_form(?array $d = null, string $action = 'app.php?p=devices', string $extra = ''): void
 {
     $d = $d ?? ['id' => '', 'name' => '', 'host' => '', 'port' => 161, 'version' => '2c', 'community' => 'public', 'v3_user' => '', 'v3_level' => 'authPriv',
         'v3_auth_proto' => 'SHA', 'v3_auth_pass' => '', 'v3_priv_proto' => 'AES', 'v3_priv_pass' => '', 'poll_interval' => 60, 'enabled' => 1, 'public' => 0, 'icon' => null, 'sysdescr' => null, 'type' => 'snmp', 'scheme' => 'http', 'path' => '/metrics'];
     $d += ['type' => 'snmp', 'scheme' => 'http', 'path' => '/metrics'];
     $sel = fn($a, $b) => (string)$a === (string)$b ? 'selected' : '';
     ?>
-<form method="post" action="app.php?p=devices" class="card" data-busy>
+<form method="post" action="<?= e($action) ?>" class="card" data-busy>
   <?= csrf_field() ?><input type="hidden" name="act" value="save"><input type="hidden" name="id" value="<?= e($d['id']) ?>">
   <header class="card-head"><hgroup><h2><?= $d['id'] ? 'Device settings' : 'Add device' ?></h2><p>Saving polls the device once, so it can take a few seconds.</p></hgroup></header>
   <div class="form-grid">
@@ -77,6 +77,7 @@ function device_form(?array $d = null): void
   </div>
   <footer>
     <?php if ($d['id']): ?><button class="btn btn-ghost btn-danger" form="deldev">Delete device</button><?php endif ?>
+    <?= $extra ?>
     <button class="btn"><?= $d['id'] ? 'Save' : 'Add device' ?></button>
   </footer>
 </form>

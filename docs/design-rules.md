@@ -171,6 +171,15 @@ written out; **use only these**:
   `aria-busy` with a spinner (`app.js`).
 - **Disabled**: 45% opacity, `cursor: default`. A disabled device's row is `.is-disabled`.
 
+## Setup wizard (2026-11-19)
+
+- `public/setup.php` runs while no admin password exists, and resumes (signed in) until its last step
+  is done; `app.php` and `login.php` send there. Steps: system check, admin password, basics, first
+  device, cron. One card per step, a numbered `ol.steps` above it, plain POST + redirect.
+- It is unguarded by the owner's choice; the password step says so in a `warn` notice.
+- The first-device step reuses `device_form()` and `device_save()` (`lib/devices.php`), so it is the
+  same form as Devices → Add device.
+
 ## Text and language
 
 - English, sentence case, no trailing full stop on labels and buttons.

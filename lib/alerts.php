@@ -48,12 +48,12 @@ function alert_set(int $device, ?int $metric, string $state, string $msg): void
 
 function alert_mail(string $msg): void
 {
-    $to = config('mail_to');
+    $to = setting('mail_to');
     if (!$to) {
         return;
     }
-    $headers = 'From: ' . config('mail_from') . "\r\nContent-Type: text/plain; charset=UTF-8";
-    @mail($to, '[' . config('app_name') . '] ' . $msg, $msg . "\n\n" . date('Y-m-d H:i:s T') . "\n", $headers);
+    $headers = 'From: ' . setting('mail_from', 'tidewatch@localhost') . "\r\nContent-Type: text/plain; charset=UTF-8";
+    @mail($to, '[' . setting('app_name', 'Tidewatch') . '] ' . $msg, $msg . "\n\n" . date('Y-m-d H:i:s T') . "\n", $headers);
 }
 
 /** Value with an SI-prefixed unit, e.g. 147996 'B' -> '148 kB'. Mirrors TW.fmt in app.js. */

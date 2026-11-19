@@ -1,5 +1,5 @@
 <?php
-$devices = db_all('SELECT * FROM devices WHERE enabled = 1 ORDER BY name');
+$devices = db_all('SELECT * FROM devices WHERE enabled = 1 ORDER BY sort, name');
 $up = count(array_filter($devices, fn($d) => $d['status'] === 'up'));
 $down = count(array_filter($devices, fn($d) => $d['status'] === 'down'));
 $nAlerts = (int)db_val('SELECT COUNT(*) FROM alerts');
@@ -24,14 +24,14 @@ page_start('Overview', 'overview');
   <p class="empty">No devices yet. <a href="app.php?p=device_add">Add your first device</a>.</p>
 <?php endif ?>
 
-<div class="grid grid-auto">
+<div class="grid grid-auto" data-sortable title="Drag a card to reorder">
 <?php foreach ($devices as $d):
     $gauges = $d['status'] === 'up' ? device_summary((int)$d['id']) : [];
     $graph = $d['status'] === 'up' ? device_graph((int)$d['id']) : ['points' => []];
     $pts = $graph['points'];
     $nowVal = $pts ? end($pts) : null;
 ?>
-  <a class="card dev-card <?= $d['status'] === 'down' ? 'is-down' : '' ?>" href="app.php?p=device&id=<?= $d['id'] ?>">
+  <a class="card dev-card <?= $d['status'] === 'down' ? 'is-down' : '' ?>" href="app.php?p=device&id=<?= $d['id'] ?>" draggable="true" data-id="<?= $d['id'] ?>">
     <div class="top">
       <?= device_badge($d) ?>
       <div>
@@ -66,4 +66,4 @@ page_start('Overview', 'overview');
 </div>
 <?php endif ?>
 <?php
-page_end(['gauge.js']);
+page_end(['gauge.js', 'sort.js']);

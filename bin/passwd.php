@@ -20,9 +20,9 @@ function ask(string $p): string {
 $a = ask('New admin password: ');
 if (strlen($a) < 8) { fwrite(STDERR, "At least 8 characters.\n"); exit(1); }
 if ($a !== ask('Repeat: ')) { fwrite(STDERR, "Mismatch.\n"); exit(1); }
-$hash = password_hash($a, PASSWORD_DEFAULT);
-$src = file_get_contents($cfg);
-$src = preg_replace_callback("/'admin_hash'\s*=>\s*'[^']*'/", fn() => "'admin_hash' => " . var_export($hash, true), $src, 1, $n);
-if (!$n) { fwrite(STDERR, "admin_hash key not found in config.php\n"); exit(1); }
-file_put_contents($cfg, $src);
+require_once "$root/lib/db.php";
+setting_set('admin_hash', password_hash($a, PASSWORD_DEFAULT)); // stored in the database; wins over config.php
+if (setup_step() !== 'done' && !db_val("SELECT v FROM meta WHERE k = 'setup_step'")) {
+    setup_step_set('done'); // set from the shell: no wizard needed
+}
 echo "Admin password set.\n";

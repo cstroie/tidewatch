@@ -9,7 +9,6 @@ $lastPoll = (int)db_val('SELECT MAX(last_poll) FROM devices');
 $lastRoll = (int)db_val("SELECT v FROM meta WHERE k = 'rollup_samples_5m'");
 $dbSize = db_is_sqlite() ? @filesize(substr((string)config('db_dsn'), 7)) : null;
 $pcntl = db_val("SELECT v FROM meta WHERE k='poll_pcntl'"); // written by the CLI poller
-$root = dirname(__DIR__, 2);
 $row = fn($k, $v) => '<tr><td class="muted">' . e($k) . '</td><td>' . $v . '</td></tr>';
 page_start('Settings', 'settings');
 ?>
@@ -21,7 +20,7 @@ page_start('Settings', 'settings');
     <?= $row('Parallel workers', e(config('poll_workers')) . ($pcntl === '0' || $pcntl === 0 ? ' <span class="pill pill-warn">pcntl missing in CLI PHP: sequential</span>' : '')) ?>
     <?= $row('Last poll', $lastPoll ? e(date('Y-m-d H:i:s', $lastPoll)) . ' <span class="muted">(' . e(fmt_ago($lastPoll)) . ')</span>' . (time() - $lastPoll > 180 ? ' <span class="pill pill-crit">cron not running?</span>' : '') : 'never') ?>
     <?= $row('Last rollup', $lastRoll ? e(date('Y-m-d H:i', $lastRoll)) : 'never') ?>
-    <?= $row('Alert e-mail', config('mail_to') ? e(config('mail_to')) : '<span class="muted">disabled</span>') ?>
+    <?= $row('Alert e-mail', setting('mail_to') ? e(setting('mail_to')) : '<span class="muted">disabled</span>') ?>
   </table></div>
   <div class="card flush"><header class="card-head"><hgroup><h2>Storage</h2></hgroup></header><table class="tbl">
     <?= $row('Database', e(db_is_sqlite() ? 'SQLite' : 'MariaDB/MySQL') . ($dbSize ? ' · ' . e(fmt_num((float)$dbSize)) . 'B' : '')) ?>
@@ -31,8 +30,7 @@ page_start('Settings', 'settings');
 </div>
 <div class="card mt">
   <header class="card-head"><hgroup><h2>Cron</h2><p>Add these lines to the web server user's crontab.</p></hgroup></header>
-  <pre class="mono small cron">* * * * *   php <?= e($root) ?>/bin/poll.php
-*/5 * * * * php <?= e($root) ?>/bin/rollup.php</pre>
+  <pre class="mono small cron"><?= e(cron_lines()) ?></pre>
 </div>
 <div class="card mt">
   <header class="card-head"><hgroup><h2>Admin password</h2><p>Change it on the server with <code>php bin/passwd.php</code>.</p></hgroup></header>

@@ -53,7 +53,7 @@ function icon(string $name): string
 function page_start(string $title, string $active = '', bool $public = false): void
 {
     security_headers();
-    $app = e(config('app_name', 'Tidewatch'));
+    $app = e(setting('app_name', 'Tidewatch'));
     $nav = $public ? [] : [
         'overview'   => ['grid', 'Overview', 'app.php'],
         'devices'    => ['server', 'Devices', 'app.php?p=devices'],
@@ -139,6 +139,13 @@ function notice(string $msg, string $kind = 'info'): string
     $kind = $kind === 'err' ? 'error' : (in_array($kind, ['info', 'ok', 'warn', 'error'], true) ? $kind : 'info');
     $role = in_array($kind, ['warn', 'error'], true) ? 'alert' : 'status';
     return '<div class="notice notice-' . $kind . '" role="' . $role . '">' . e($msg) . '</div>';
+}
+
+/** The crontab lines for the poller and the rollup. */
+function cron_lines(): string
+{
+    $root = dirname(__DIR__);
+    return "* * * * *   php $root/bin/poll.php\n*/5 * * * * php $root/bin/rollup.php";
 }
 
 function redirect(string $to): never
