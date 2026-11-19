@@ -232,14 +232,16 @@ page_start($dev['name'], 'devices');
       <header class="card-head"><hgroup><h2>Add custom OID</h2><p>The device is asked for the OID once before it is added.</p></hgroup></header>
       <div class="form-grid">
         <div class="field"><label>OID
-          <input type="text" name="oid" required placeholder="1.3.6.1.4.1.2021.4.6.0" class="mono"></label></div>
+          <input type="text" name="oid" required placeholder="1.3.6.1.4.1.2021.4.6.0" class="mono">
+          <small>Numeric, with no leading dot.</small></label></div>
         <div class="field"><label>Label
           <input type="text" name="label" placeholder="Free memory"><small>Left empty, the OID is the label.</small></label></div>
         <div class="field"><label>Type
           <select name="type"><option value="gauge">Gauge</option><option value="counter">Counter</option></select>
           <small>A gauge is stored as read; a counter as a rate per second.</small></label></div>
         <div class="field"><label>Unit
-          <input type="text" name="unit" placeholder="kB"></label></div>
+          <input type="text" name="unit" placeholder="kB">
+          <small>Optional. Shown after the value; kB, MB and B get SI scaling.</small></label></div>
         <div class="field"><label>Scale
           <input type="number" step="any" name="scale" value="1"><small>Multiplies the value: 8 turns bytes into bits.</small></label></div>
       </div>

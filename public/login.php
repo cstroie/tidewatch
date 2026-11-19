@@ -37,7 +37,8 @@ page_start('Sign in', '', true);
     <?= csrf_field() ?>
     <input type="hidden" name="next" value="<?= e($next) ?>">
     <div class="field"><label>Password
-      <input type="password" name="password" autofocus required autocomplete="current-password"></label></div>
+      <input type="password" name="password" autofocus required autocomplete="current-password">
+      <small>Set on the server with php bin/passwd.php.</small></label></div>
     <button class="btn">Sign in</button>
     <p class="small muted back"><a href="index.php">← Public status</a></p>
   </form>

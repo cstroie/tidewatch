@@ -20,44 +20,55 @@ function device_form(?array $d = null): void
       <input type="text" name="name" value="<?= e($d['name']) ?>" placeholder="core-switch">
       <small>Optional. Left empty, it is taken from the device (sysName), else the host.</small></label></div>
     <div class="field"><label>Host / IP
-      <input type="text" name="host" required value="<?= e($d['host']) ?>" placeholder="192.168.1.1" class="mono"></label></div>
+      <input type="text" name="host" required value="<?= e($d['host']) ?>" placeholder="192.168.1.1" class="mono">
+      <small>Name or IP address the poller can reach.</small></label></div>
     <div class="field"><label>Port
-      <input type="number" name="port" data-port value="<?= e($d['port']) ?>"></label></div>
+      <input type="number" name="port" data-port value="<?= e($d['port']) ?>">
+      <small>161 for SNMP, 80 for most /metrics endpoints.</small></label></div>
     <div class="field" data-prom><label>Scheme
-      <select name="scheme"><option value="http" <?= $sel($d['scheme'], 'http') ?>>http</option><option value="https" <?= $sel($d['scheme'], 'https') ?>>https</option></select></label></div>
+      <select name="scheme"><option value="http" <?= $sel($d['scheme'], 'http') ?>>http</option><option value="https" <?= $sel($d['scheme'], 'https') ?>>https</option></select>
+      <small>How to reach the metrics page.</small></label></div>
     <div class="field" data-prom><label>Path
-      <input type="text" name="path" value="<?= e($d['path']) ?>" placeholder="/metrics" class="mono"></label></div>
+      <input type="text" name="path" value="<?= e($d['path']) ?>" placeholder="/metrics" class="mono">
+      <small>URL path of the Prometheus text page.</small></label></div>
     <div class="field" data-snmp><label>SNMP version
       <select name="version" data-snmpver>
-      <option value="1" <?= $sel($d['version'], '1') ?>>v1</option><option value="2c" <?= $sel($d['version'], '2c') ?>>v2c</option><option value="3" <?= $sel($d['version'], '3') ?>>v3</option></select></label></div>
+      <option value="1" <?= $sel($d['version'], '1') ?>>v1</option><option value="2c" <?= $sel($d['version'], '2c') ?>>v2c</option><option value="3" <?= $sel($d['version'], '3') ?>>v3</option></select>
+      <small>v2c for most devices; v3 for user-based security.</small></label></div>
     <div class="field" data-snmp data-v12><label>Community
-      <input type="text" name="community" value="<?= e($d['community']) ?>" placeholder="public" autocomplete="off"></label></div>
+      <input type="text" name="community" value="<?= e($d['community']) ?>" placeholder="public" autocomplete="off">
+      <small>The read-only community set on the device.</small></label></div>
     <div class="field"><label>Icon
       <select name="icon">
       <option value=""><?= $d['id'] ? 'Auto (' . e(DEVICE_ICONS[device_icon_name($d)]) . ')' : 'Auto' ?></option>
-      <?php foreach (DEVICE_ICONS as $k => $l): ?><option value="<?= $k ?>" <?= $sel($d['icon'] ?? '', $k) ?>><?= e($l) ?></option><?php endforeach ?></select></label></div>
+      <?php foreach (DEVICE_ICONS as $k => $l): ?><option value="<?= $k ?>" <?= $sel($d['icon'] ?? '', $k) ?>><?= e($l) ?></option><?php endforeach ?></select>
+      <small>Auto guesses it from the system description.</small></label></div>
     <div class="field"><label>Poll interval (seconds)
       <input type="number" name="poll_interval" data-interval min="60" step="60" value="<?= e($d['poll_interval']) ?>">
       <small>At least 60; the poller runs once a minute.</small></label></div>
   </div>
   <div class="form-grid" data-snmp data-v3>
     <div class="field"><label>User
-      <input type="text" name="v3_user" value="<?= e($d['v3_user']) ?>" autocomplete="off"></label></div>
+      <input type="text" name="v3_user" value="<?= e($d['v3_user']) ?>" autocomplete="off">
+      <small>The SNMPv3 user name set on the device.</small></label></div>
     <div class="field"><label>Security level
       <select name="v3_level">
-      <?php foreach (['noAuthNoPriv', 'authNoPriv', 'authPriv'] as $l): ?><option <?= $sel($d['v3_level'], $l) ?>><?= $l ?></option><?php endforeach ?></select></label></div>
+      <?php foreach (['noAuthNoPriv', 'authNoPriv', 'authPriv'] as $l): ?><option <?= $sel($d['v3_level'], $l) ?>><?= $l ?></option><?php endforeach ?></select>
+      <small>authPriv signs and encrypts; the others do less.</small></label></div>
     <div class="field"><label>Auth protocol
       <select name="v3_auth_proto">
-      <?php foreach (['SHA', 'MD5', 'SHA-256', 'SHA-512'] as $l): ?><option <?= $sel($d['v3_auth_proto'], $l) ?>><?= $l ?></option><?php endforeach ?></select></label></div>
+      <?php foreach (['SHA', 'MD5', 'SHA-256', 'SHA-512'] as $l): ?><option <?= $sel($d['v3_auth_proto'], $l) ?>><?= $l ?></option><?php endforeach ?></select>
+      <small>Must match the device.</small></label></div>
     <div class="field"><label>Auth passphrase
       <input type="password" name="v3_auth_pass" value="" placeholder="<?= $d['v3_auth_pass'] ? 'unchanged' : '' ?>" autocomplete="new-password">
-      <?php if ($d['v3_auth_pass']): ?><small>Left empty, the stored one is kept.</small><?php endif ?></label></div>
+      <small><?= $d['v3_auth_pass'] ? 'Left empty, the stored one is kept.' : 'At least 8 characters.' ?></small></label></div>
     <div class="field"><label>Privacy protocol
       <select name="v3_priv_proto">
-      <?php foreach (['AES', 'DES', 'AES-192', 'AES-256'] as $l): ?><option <?= $sel($d['v3_priv_proto'], $l) ?>><?= $l ?></option><?php endforeach ?></select></label></div>
+      <?php foreach (['AES', 'DES', 'AES-192', 'AES-256'] as $l): ?><option <?= $sel($d['v3_priv_proto'], $l) ?>><?= $l ?></option><?php endforeach ?></select>
+      <small>Must match the device.</small></label></div>
     <div class="field"><label>Privacy passphrase
       <input type="password" name="v3_priv_pass" value="" placeholder="<?= $d['v3_priv_pass'] ? 'unchanged' : '' ?>" autocomplete="new-password">
-      <?php if ($d['v3_priv_pass']): ?><small>Left empty, the stored one is kept.</small><?php endif ?></label></div>
+      <small><?= $d['v3_priv_pass'] ? 'Left empty, the stored one is kept.' : 'At least 8 characters.' ?></small></label></div>
   </div>
   <div class="checks">
     <label class="check"><input type="checkbox" name="enabled" value="1" <?= $d['enabled'] ? 'checked' : '' ?>> Enabled</label>

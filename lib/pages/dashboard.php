@@ -21,17 +21,22 @@ page_start($d['name'], 'dashboards');
     <h2>Panel</h2>
     <div class="form-grid">
       <div class="field"><label>Type
-        <select name="type"><option value="graph">Graph</option><option value="gauge">Gauge</option><option value="stat">Stat</option><option value="status">Device status</option></select></label></div>
+        <select name="type"><option value="graph">Graph</option><option value="gauge">Gauge</option><option value="stat">Stat</option><option value="status">Device status</option></select>
+        <small>What the panel draws.</small></label></div>
       <div class="field"><label>Title
-        <input type="text" name="title" maxlength="80" placeholder="Traffic"></label></div>
+        <input type="text" name="title" maxlength="80" placeholder="Traffic">
+        <small>Optional. Shown above the panel.</small></label></div>
       <div class="field"><label>Width (columns)
         <input type="number" name="w" min="1" max="12" value="6"><small>1 to 12.</small></label></div>
       <div class="field"><label>Height (rows)
-        <input type="number" name="h" min="1" max="8" value="3"></label></div>
+        <input type="number" name="h" min="1" max="8" value="3">
+        <small>1 to 8; a row is 80 px.</small></label></div>
       <div class="field" data-for="graph"><label>Time range
-        <select name="range"><?php foreach (array_keys(RANGES) as $r): ?><option <?= $r === '24h' ? 'selected' : '' ?>><?= $r ?></option><?php endforeach ?></select></label></div>
+        <select name="range"><?php foreach (array_keys(RANGES) as $r): ?><option <?= $r === '24h' ? 'selected' : '' ?>><?= $r ?></option><?php endforeach ?></select>
+        <small>How far back the graph goes.</small></label></div>
       <div class="field" data-for="gauge"><label>Gauge max
-        <input type="number" step="any" name="max" placeholder="100"></label></div>
+        <input type="number" step="any" name="max" placeholder="100">
+        <small>Optional. Left empty, 100.</small></label></div>
     </div>
     <div class="field" data-for="metrics"><label>Metrics
       <input type="text" placeholder="Filter" data-filter aria-label="Filter metrics">

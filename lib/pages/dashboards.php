@@ -68,7 +68,8 @@ page_start('Dashboards', 'dashboards');
   <header class="card-head"><hgroup><h2>New dashboard</h2></hgroup></header>
   <div class="form-grid">
     <div class="field"><label>Name
-      <input type="text" name="name" required placeholder="Lab overview"></label></div>
+      <input type="text" name="name" required placeholder="Lab overview">
+      <small>You can rename it later.</small></label></div>
     <div class="field"><label>Start from
       <select name="device"><option value="">Empty</option><?php foreach ($devs as $d): ?><option value="<?= $d['id'] ?>"><?= e($d['name']) ?></option><?php endforeach ?></select>
       <small>Optional. A device fills it with its CPU, memory and traffic.</small></label></div>
