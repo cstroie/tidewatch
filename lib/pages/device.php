@@ -84,7 +84,7 @@ $en = fn($k) => array_values(array_filter($byKind[$k] ?? [], fn($m) => $m['enabl
 $ids = fn(array $ms) => implode(',', array_column($ms, 'id'));
 
 $tabs = $prom ? ['sensors' => 'Sensors', 'system' => 'System', 'metrics' => 'Metrics', 'settings' => 'Settings']
-    : ['system' => 'System', 'live' => 'Live', 'interfaces' => 'Interfaces', 'sensors' => 'Sensors & supplies', 'metrics' => 'Metrics', 'settings' => 'Settings'];
+    : ['live' => 'Live', 'system' => 'System', 'interfaces' => 'Interfaces', 'sensors' => 'Sensors & supplies', 'metrics' => 'Metrics', 'settings' => 'Settings'];
 if (!isset($tabs[$tab])) {
     $tab = $prom ? 'sensors' : 'system';
 }
