@@ -171,6 +171,18 @@ written out; **use only these**:
   `aria-busy` with a spinner (`app.js`).
 - **Disabled**: 45% opacity, `cursor: default`. A disabled device's row is `.is-disabled`.
 
+## Ordering and dashboards (2026-11-19)
+
+- **Card order is dragged, not typed**: the overview's device cards and the Dashboards list are
+  `data-sortable="<api action>"` grids (`sort.js`); the order is saved on drop in a `sort` column. A
+  card that holds inputs is dragged by its `.grip` handle (`data-handle`).
+- **A dashboard saves every change at once** (add, edit, move, resize, remove), with Undo in the page
+  head and the save state in its lead. There is no edit mode; the panel tools show on hover (always on
+  a touch screen).
+- **Adding a panel starts from the metric**: a device, then a checklist with search; the type is
+  guessed (one percentage → gauge, page counter → stat, otherwise graph) and sizes are presets
+  (Small, Half, Wide, Full × Short, Medium, Tall). *Add from device* appends a device's starter panels.
+
 ## Setup wizard (2026-11-19)
 
 - `public/setup.php` runs while no admin password exists, and resumes (signed in) until its last step

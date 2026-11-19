@@ -72,6 +72,7 @@ switch ($a) {
         out(['ok' => true]);
 
     case 'device_order': // overview card order: {ids: [device ids in display order]}
+    case 'dashboard_order': // dashboard list order
         if (!$admin || ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
             out(['error' => 'forbidden'], 403);
         }
@@ -79,12 +80,24 @@ switch ($a) {
         $in = json_decode((string)file_get_contents('php://input'), true);
         $ids = array_values(array_unique(array_map('intval', (array)($in['ids'] ?? []))));
         db()->beginTransaction();
-        $st = db()->prepare('UPDATE devices SET sort = ? WHERE id = ?');
+        $st = db()->prepare('UPDATE ' . ($a === 'device_order' ? 'devices' : 'dashboards') . ' SET sort = ? WHERE id = ?');
         foreach ($ids as $i => $id) {
             $st->execute([$i + 1, $id]);
         }
         db()->commit();
         out(['ok' => true]);
+
+    case 'starter': // a device's starter panels, to add to a dashboard
+        if (!$admin) {
+            out(['error' => 'forbidden'], 403);
+        }
+        $dev = (int)($_GET['d'] ?? 0);
+        $dname = (string)db_val('SELECT name FROM devices WHERE id = ?', [$dev]);
+        $panels = array_values(array_filter(starter_layout($dev), fn($p) => $p['type'] !== 'status'));
+        foreach ($panels as &$p) {
+            $p['title'] = $dname . ' · ' . $p['title'];
+        }
+        out(['panels' => $panels]);
 
     case 'live': // polling live mode: one direct SNMP read, counter state round-trips via the browser
         if (!$admin || ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {

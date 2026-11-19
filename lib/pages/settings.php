@@ -1,4 +1,23 @@
 <?php
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['act'] ?? '') === 'password') {
+    $cur = (string)($_POST['current'] ?? '');
+    $new = (string)($_POST['password'] ?? '');
+    if (!password_verify($cur, (string)setting('admin_hash', ''))) {
+        usleep(500000);
+        log_event('warn', 'Password change refused: wrong current password');
+        flash('The current password is wrong.', 'err');
+    } elseif (strlen($new) < 8) {
+        flash('The new password needs at least 8 characters.', 'err');
+    } elseif ($new !== (string)($_POST['repeat'] ?? '')) {
+        flash('The two new passwords differ.', 'err');
+    } else {
+        setting_set('admin_hash', password_hash($new, PASSWORD_DEFAULT));
+        auth_sign_in(); // new session id after a credential change
+        log_event('info', 'Admin password changed');
+        flash('Password changed.');
+    }
+    redirect('app.php?p=settings');
+}
 $driver = config('snmp_driver', 'auto');
 $eff = $driver === 'auto' ? (class_exists('SNMP') ? 'ext (php-snmp)' : 'cli (net-snmp tools)') : $driver;
 $counts = [];
@@ -12,7 +31,8 @@ $pcntl = db_val("SELECT v FROM meta WHERE k='poll_pcntl'"); // written by the CL
 $row = fn($k, $v) => '<tr><td class="muted">' . e($k) . '</td><td>' . $v . '</td></tr>';
 page_start('Settings', 'settings');
 ?>
-<div class="page-head"><hgroup><h1>Settings</h1><p>Configuration lives in <code>config.php</code>; this page is read-only.</p></hgroup></div>
+<div class="page-head"><hgroup><h1>Settings</h1><p>Configuration lives in <code>config.php</code>; only the password is changed here.</p></hgroup></div>
+<?= flash() ?>
 <div class="grid grid-2">
   <div class="card flush"><header class="card-head"><hgroup><h2>Collector</h2></hgroup></header><table class="tbl">
     <?= $row('SNMP driver', e($eff) . ($driver === 'auto' ? ' <span class="pill">auto</span>' : '')) ?>
@@ -32,8 +52,23 @@ page_start('Settings', 'settings');
   <header class="card-head"><hgroup><h2>Cron</h2><p>Add these lines to the web server user's crontab.</p></hgroup></header>
   <pre class="mono small cron"><?= e(cron_lines()) ?></pre>
 </div>
+<form method="post" class="card mt narrow">
+  <?= csrf_field() ?><input type="hidden" name="act" value="password">
+  <header class="card-head"><hgroup><h2>Admin password</h2><p>Forgotten it? Set a new one on the server with <code>php bin/passwd.php</code>.</p></hgroup></header>
+  <div class="field"><label>Current password
+    <input type="password" name="current" required autocomplete="current-password">
+    <small>The one you signed in with.</small></label></div>
+  <div class="form-grid">
+    <div class="field"><label>New password
+      <input type="password" name="password" required minlength="8" autocomplete="new-password">
+      <small>At least 8 characters.</small></label></div>
+    <div class="field"><label>Repeat
+      <input type="password" name="repeat" required minlength="8" autocomplete="new-password">
+      <small>The new password again.</small></label></div>
+  </div>
+  <footer><button class="btn">Change password</button></footer>
+</form>
 <div class="card mt">
-  <header class="card-head"><hgroup><h2>Admin password</h2><p>Change it on the server with <code>php bin/passwd.php</code>.</p></hgroup></header>
   <p class="small muted">PHP <?= PHP_VERSION ?> · Tidewatch · uPlot 1.6.30</p>
 </div>
 <?php

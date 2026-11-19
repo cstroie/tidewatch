@@ -5,7 +5,7 @@ require_once dirname(__DIR__) . '/lib/data.php';
 
 // Public page: no hosts, IPs, descriptions or configuration are shown here.
 $devices = db_all('SELECT id, name, status, last_poll, uptime, icon, sysdescr FROM devices WHERE enabled = 1 AND public = 1 ORDER BY sort, name');
-$dashboards = db_all('SELECT id, name, layout_json FROM dashboards WHERE public = 1 ORDER BY name');
+$dashboards = db_all('SELECT id, name, layout_json FROM dashboards WHERE public = 1 ORDER BY sort, name');
 $dashId = (int)($_GET['d'] ?? 0);
 $dash = null;
 foreach ($dashboards as $d) {

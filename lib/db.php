@@ -110,7 +110,7 @@ function db_is_sqlite(): bool
 
 function db_migrate(PDO $pdo): void
 {
-    $version = 6;
+    $version = 7;
     $cur = 0;
     try {
         $cur = (int)$pdo->query("SELECT v FROM meta WHERE k='schema'")->fetchColumn();
@@ -150,6 +150,9 @@ function db_migrate(PDO $pdo): void
         }
         if ($cur < 6) { // overview card order, set by drag and drop
             $pdo->exec('ALTER TABLE devices ADD COLUMN sort ' . (db_is_sqlite() ? 'INTEGER' : 'INT') . ' NOT NULL DEFAULT 0');
+        }
+        if ($cur < 7) { // dashboard list order
+            $pdo->exec('ALTER TABLE dashboards ADD COLUMN sort ' . (db_is_sqlite() ? 'INTEGER' : 'INT') . ' NOT NULL DEFAULT 0');
         }
     }
     db_upsert('meta', ['k' => 'schema', 'v' => (string)$version], ['k'], $pdo);

@@ -24,7 +24,7 @@ page_start('Overview', 'overview');
   <p class="empty">No devices yet. <a href="app.php?p=device_add">Add your first device</a>.</p>
 <?php endif ?>
 
-<div class="grid grid-auto" data-sortable title="Drag a card to reorder">
+<div class="grid grid-auto" data-sortable="device_order" title="Drag a card to reorder">
 <?php foreach ($devices as $d):
     $gauges = $d['status'] === 'up' ? device_summary((int)$d['id']) : [];
     $graph = $d['status'] === 'up' ? device_graph((int)$d['id']) : ['points' => []];
@@ -42,7 +42,7 @@ page_start('Overview', 'overview');
     </div>
     <?php if ($gauges): ?>
       <div class="gauges">
-        <?php foreach ($gauges as [$l, $v, $max, $u, $w, $c, $min]): ?><div class="gauge-wrap"><?= gauge_html($l, $v, $max, $u, $w, $c, (float)($min ?? 0)) ?></div><?php endforeach ?>
+        <?php foreach ($gauges as $g): ?><div class="gauge-wrap"><?= gauge_html($g[0], $g[1], $g[2], $g[3], $g[4], $g[5], (float)($g[6] ?? 0)) ?></div><?php endforeach ?>
       </div>
     <?php elseif ($d['status'] === 'down'): ?>
       <div class="muted small">No response since <?= e(fmt_ago((int)$d['last_poll'])) ?>.</div>

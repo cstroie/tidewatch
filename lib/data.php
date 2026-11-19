@@ -206,3 +206,20 @@ function gauge_html(string $label, ?float $value, float $max, ?string $unit, $wa
         . '" data-unit="' . htmlspecialchars((string)$unit) . '" data-warn="' . ($warn ?? '') . '" data-crit="' . ($crit ?? '')
         . '"></div><div class="glabel" title="' . htmlspecialchars($label) . '">' . htmlspecialchars($label) . '</div>';
 }
+
+/** A sensible starting layout for one device. */
+function starter_layout(int $dev): array
+{
+    $ms = db_all('SELECT id, kind, label FROM metrics WHERE device_id = ? AND enabled = 1 ORDER BY id', [$dev]);
+    $k = fn($kind) => array_column(array_filter($ms, fn($m) => $m['kind'] === $kind), 'id');
+    $L = [['type' => 'status', 'title' => 'Devices', 'metrics' => [], 'w' => 3, 'h' => 3, 'range' => '24h']];
+    foreach (array_slice($k('cpu'), 0, 1) as $id) $L[] = ['type' => 'gauge', 'title' => 'CPU 0', 'metrics' => [$id], 'w' => 3, 'h' => 3, 'range' => '24h'];
+    foreach (array_slice($k('mem'), 0, 1) as $id) $L[] = ['type' => 'gauge', 'title' => 'Memory', 'metrics' => [$id], 'w' => 3, 'h' => 3, 'range' => '24h'];
+    foreach (array_slice($k('supply'), 0, 2) as $id) $L[] = ['type' => 'gauge', 'title' => 'Toner', 'metrics' => [$id], 'w' => 3, 'h' => 3, 'range' => '24h'];
+    foreach (array_slice($k('pages'), 0, 1) as $id) $L[] = ['type' => 'stat', 'title' => 'Pages printed', 'metrics' => [$id], 'w' => 3, 'h' => 3, 'range' => '24h'];
+    if ($k('cpu')) $L[] = ['type' => 'graph', 'title' => 'CPU', 'metrics' => array_slice($k('cpu'), 0, 6), 'w' => 6, 'h' => 4, 'range' => '24h'];
+    $in = $k('if_in'); $out = $k('if_out');
+    if ($in) $L[] = ['type' => 'graph', 'title' => 'Traffic', 'metrics' => array_slice(array_merge(array_slice($in, 0, 2), array_slice($out, 0, 2)), 0, 4), 'w' => 6, 'h' => 4, 'range' => '24h'];
+    if ($k('storage')) $L[] = ['type' => 'graph', 'title' => 'Storage', 'metrics' => array_slice($k('storage'), 0, 4), 'w' => 6, 'h' => 4, 'range' => '7d'];
+    return $L;
+}
