@@ -30,15 +30,15 @@
     groups.forEach(function (g) {
       var card = document.createElement('div');
       card.className = 'card';
-      card.innerHTML = '<div class="card-head"><h3></h3><span class="live-now"></span></div><div class="chart"></div>';
-      card.querySelector('h3').textContent = g.title;
+      card.innerHTML = '<header class="card-head"><hgroup><h2></h2></hgroup><span class="live-now"></span></header><div class="chart"></div>';
+      card.querySelector('h2').textContent = g.title;
       g.now = card.querySelector('.live-now');
       g.el = card.querySelector('.chart');
       g.data = [[]].concat(g.metrics.map(function () { return []; }));
       g.metrics.forEach(function (m, i) { byId[m.id] = { g: g, i: i + 1, m: m }; });
       grid.appendChild(card);
     });
-    if (!groups.length) grid.innerHTML = '<div class="card empty-state">No CPU, memory or interface metrics to show live.</div>';
+    if (!groups.length) grid.innerHTML = '<p class="empty">No CPU, memory or interface metrics to show live.</p>';
     groups.forEach(draw);
   }
 

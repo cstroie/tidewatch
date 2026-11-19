@@ -33,12 +33,13 @@ page_start('Sign in', '', true);
 <div class="login-wrap">
   <form class="card login" method="post" autocomplete="off">
     <div class="brand-big"><?= logo_svg() ?><h1><?= e(config('app_name')) ?></h1><span class="muted small">Administrator sign in</span></div>
-    <?php if ($error): ?><div class="flash flash-err"><?= e($error) ?></div><?php endif ?>
+    <?php if ($error): ?><?= notice($error, 'error') ?><?php endif ?>
     <?= csrf_field() ?>
     <input type="hidden" name="next" value="<?= e($next) ?>">
-    <div class="field"><label for="pw">Password</label><input id="pw" type="password" name="password" autofocus required autocomplete="current-password"></div>
+    <div class="field"><label>Password
+      <input type="password" name="password" autofocus required autocomplete="current-password"></label></div>
     <button class="btn">Sign in</button>
-    <p class="small muted" style="text-align:center;margin:14px 0 0"><a href="index.php">← Public status</a></p>
+    <p class="small muted back"><a href="index.php">← Public status</a></p>
   </form>
 </div>
 <?php

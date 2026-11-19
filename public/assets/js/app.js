@@ -23,6 +23,21 @@
   document.querySelectorAll('form[data-confirm]').forEach(function (f) {
     f.addEventListener('submit', function (e) { if (!confirm(f.getAttribute('data-confirm'))) e.preventDefault(); });
   });
+  // Busy: a slow form disables its buttons and spins its submit until the next page loads.
+  document.querySelectorAll('form[data-busy]').forEach(function (f) {
+    f.addEventListener('submit', function (e) {
+      if (e.defaultPrevented) return;
+      var btn = e.submitter || f.querySelector('button:not([type=button])');
+      setTimeout(function () { // after the submit, so the clicked button's value is still sent
+        f.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
+        if (btn) btn.setAttribute('aria-busy', 'true');
+      }, 0);
+    });
+  });
+  addEventListener('pageshow', function (e) { // back/forward cache: undo the busy state
+    if (!e.persisted) return;
+    document.querySelectorAll('form[data-busy] button').forEach(function (b) { b.disabled = false; b.removeAttribute('aria-busy'); });
+  });
 })();
 
 window.TW = {

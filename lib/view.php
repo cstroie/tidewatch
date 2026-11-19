@@ -130,7 +130,15 @@ function flash(?string $msg = null, string $type = 'ok'): string
     }
     [$t, $m] = $_SESSION['flash'];
     unset($_SESSION['flash']);
-    return '<div class="flash flash-' . e($t) . '">' . e($m) . '</div>';
+    return notice($m, $t);
+}
+
+/** A notice card: kind info|ok|warn|error ('err' is accepted for error). */
+function notice(string $msg, string $kind = 'info'): string
+{
+    $kind = $kind === 'err' ? 'error' : (in_array($kind, ['info', 'ok', 'warn', 'error'], true) ? $kind : 'info');
+    $role = in_array($kind, ['warn', 'error'], true) ? 'alert' : 'status';
+    return '<div class="notice notice-' . $kind . '" role="' . $role . '">' . e($msg) . '</div>';
 }
 
 function redirect(string $to): never

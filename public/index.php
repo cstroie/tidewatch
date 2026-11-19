@@ -21,7 +21,7 @@ header('Refresh: 60');
 page_start($dash ? $dash['name'] : 'Status', '', true);
 
 if ($dash): ?>
-  <div class="page-head"><div><h1><?= e($dash['name']) ?></h1><div class="sub"><a href="index.php">← Status</a></div></div></div>
+  <div class="page-head"><hgroup><h1><?= e($dash['name']) ?></h1><p><a href="index.php">← Status</a></p></hgroup></div>
   <div class="dash" data-dash data-id="<?= (int)$dash['id'] ?>"></div>
   <script type="application/json" id="dash-layout"><?= json_encode(json_decode($dash['layout_json'], true) ?: [], JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
 <?php
@@ -38,17 +38,17 @@ endif;
 </div>
 
 <?php if ($devices): ?>
-<div class="grid grid-tiles" style="margin-bottom:24px">
+<div class="grid grid-tiles mb">
   <?php foreach ($devices as $d): ?>
     <div class="tile <?= $d['status'] === 'down' ? 'is-down' : '' ?>">
       <?= device_badge($d, 'sm') ?>
-      <div style="min-width:0"><div class="t-name"><?= e($d['name']) ?></div>
+      <div class="t-text"><div class="t-name"><?= e($d['name']) ?></div>
         <div class="t-sub"><?= $d['status'] === 'up' ? 'up ' . e(fmt_uptime($d['uptime'] ? (int)$d['uptime'] : null)) : e($d['status']) . ($d['last_poll'] ? ' · ' . e(fmt_ago((int)$d['last_poll'])) : '') ?></div></div>
     </div>
   <?php endforeach ?>
 </div>
 <?php else: ?>
-  <div class="card empty-state">No public devices yet. Tick “Show on public status page” in a device’s settings.</div>
+  <p class="empty">No public devices yet. Tick “Show on public status page” in a device’s settings.</p>
 <?php endif ?>
 
 <?php if ($dashboards): ?>

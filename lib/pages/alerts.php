@@ -11,9 +11,9 @@ $where = in_array($level, ['crit', 'warn', 'ok', 'info'], true) ? 'WHERE e.level
 $events = db_all("SELECT e.*, d.name dname FROM events e LEFT JOIN devices d ON d.id = e.device_id $where ORDER BY e.id DESC LIMIT 200");
 page_start('Alerts', 'alerts');
 ?>
-<div class="page-head"><div><h1>Alerts</h1><div class="sub"><?= count($alerts) ?> active</div></div></div>
+<div class="page-head"><hgroup><h1>Alerts</h1><p><?= count($alerts) ?> active</p></hgroup></div>
 <?= flash() ?>
-<div class="card flush" style="margin-bottom:20px">
+<div class="card flush mb">
   <?php if ($alerts): ?>
   <div class="table-wrap"><table class="tbl">
     <thead><tr><th>State</th><th>Device</th><th>What</th><th class="num">Value</th><th>Since</th></tr></thead>
@@ -26,20 +26,20 @@ page_start('Alerts', 'alerts');
         <td><?= date('M j H:i', (int)$a['since']) ?> <span class="muted small">(<?= e(fmt_ago((int)$a['since'])) ?>)</span></td></tr>
     <?php endforeach ?>
     </tbody></table></div>
-  <?php else: ?><div class="empty-state"><?= icon('bell') ?><p>All calm. No active alerts.</p></div><?php endif ?>
+  <?php else: ?><p class="empty">All calm. No active alerts.</p><?php endif ?>
 </div>
 <div class="card">
-  <div class="card-head"><h2>Event log</h2>
-    <div class="right">
+  <header class="card-head"><hgroup><h2>Event log</h2><p>The last 200 events.</p></hgroup>
+    <div class="actions">
       <div class="seg"><?php foreach (['' => 'All', 'crit' => 'Crit', 'warn' => 'Warn', 'ok' => 'OK', 'info' => 'Info'] as $k => $l): ?><a href="app.php?p=alerts&level=<?= $k ?>" class="<?= $level === $k ? 'active' : '' ?>"><?= $l ?></a><?php endforeach ?></div>
-      <form method="post" data-confirm="Clear the whole event log?" class="inline"><?= csrf_field() ?><input type="hidden" name="act" value="clear_events"><button class="btn btn-ghost btn-sm">Clear</button></form>
-    </div></div>
+      <form method="post" data-confirm="Clear the whole event log?" class="inline"><?= csrf_field() ?><input type="hidden" name="act" value="clear_events"><button class="btn btn-ghost btn-danger btn-sm">Clear</button></form>
+    </div></header>
   <ul class="events">
   <?php foreach ($events as $ev): ?>
     <li><time><?= date('M j H:i:s', (int)$ev['ts']) ?></time><span class="pill pill-<?= e($ev['level']) ?>"><?= e($ev['level']) ?></span><span><?= e($ev['message']) ?></span></li>
   <?php endforeach ?>
-  <?php if (!$events): ?><li class="muted">No events.</li><?php endif ?>
-  </ul>
+    </ul>
+  <?php if (!$events): ?><p class="empty">No events<?= $level ? ' at this level' : '' ?>.</p><?php endif ?>
 </div>
 <?php
 page_end();

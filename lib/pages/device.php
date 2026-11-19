@@ -32,7 +32,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $st->execute([mb_substr(trim((string)($f['label'] ?? '')), 0, 120) ?: 'metric', $num($f['warn'] ?? ''), $num($f['crit'] ?? ''), empty($f['enabled']) ? 0 : 1,
                 $gauge ? 1 : 0, (int)$mid === $graphId ? 1 : 0, $num($f['gmin'] ?? ''), $num($f['gmax'] ?? ''), (int)$mid, $id]);
         }
-        $dropped ? flash('Metrics saved. Only 3 gauges fit on the overview card; the extra ones were not selected.', 'err') : flash('Metrics saved.');
+        $dropped ? flash('Metrics saved. Only 3 gauges fit on the overview card; the extra ones were not selected.', 'warn') : flash('Metrics saved.');
         redirect("$self&tab=metrics");
     }
     if ($act === 'custom' && !$prom) {
@@ -92,7 +92,7 @@ page_start($dev['name'], 'devices');
 ?>
 <div class="page-head">
   <?= device_badge($dev, 'lg') ?>
-  <div style="min-width:0"><h1><?= e($dev['name']) ?></h1><div class="sub"><?php if ($prom): require_once dirname(__DIR__) . '/prom.php'; ?><?= e(prom_url($dev)) ?> · every <?= (int)$dev['poll_interval'] ?>s<?php else: ?><?= e($dev['host']) ?> · SNMP v<?= e($dev['version']) ?> · up <?= e(fmt_uptime($dev['uptime'] ? (int)$dev['uptime'] : null)) ?><?php endif ?> · polled <?= e(fmt_ago($dev['last_poll'] ? (int)$dev['last_poll'] : null)) ?></div></div>
+  <hgroup><h1><?= e($dev['name']) ?></h1><p><?php if ($prom): require_once dirname(__DIR__) . '/prom.php'; ?><?= e(prom_url($dev)) ?> · every <?= (int)$dev['poll_interval'] ?>s<?php else: ?><?= e($dev['host']) ?> · SNMP v<?= e($dev['version']) ?> · up <?= e(fmt_uptime($dev['uptime'] ? (int)$dev['uptime'] : null)) ?><?php endif ?> · polled <?= e(fmt_ago($dev['last_poll'] ? (int)$dev['last_poll'] : null)) ?></p></hgroup>
   <div class="actions"><?= in_array($tab, ['system', 'interfaces', 'sensors'], true) ? range_picker() : '' ?></div>
 </div>
 <?= flash() ?>
@@ -102,12 +102,12 @@ page_start($dev['name'], 'devices');
     $cpu = $en('cpu'); $load = $en('load'); $mem = $en('mem'); $sto = $en('storage');
     $gauge = array_merge($mem, $sto);
 ?>
-  <?php if ($dev['sysdescr']): ?><p class="muted small" style="margin-top:-6px"><?= e($dev['sysdescr']) ?></p><?php endif ?>
+  <?php if ($dev['sysdescr']): ?><p class="muted small lead"><?= e($dev['sysdescr']) ?></p><?php endif ?>
   <?php $info = array_filter(['Hostname' => $dev['sysname'] ?? '', 'Location' => $dev['syslocation'] ?? '', 'Contact' => $dev['syscontact'] ?? '']); ?>
-  <?php if ($info): ?><p class="small" style="margin-top:-6px"><?php foreach ($info as $k => $v): ?><span class="muted"><?= e($k) ?></span> <?= e($v) ?> &nbsp; <?php endforeach ?></p><?php endif ?>
+  <?php if ($info): ?><p class="small lead"><?php foreach ($info as $k => $v): ?><span><span class="muted"><?= e($k) ?></span> <?= e($v) ?></span><?php endforeach ?></p><?php endif ?>
   <?php if ($cpu || $gauge): ?>
-  <div class="card" style="margin-bottom:16px">
-    <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(110px,1fr));text-align:center">
+  <div class="card mb">
+    <div class="grid gauge-row">
       <?php if ($cpu):
           $vals = array_filter(array_map(fn($m) => $last[$m['id']] ?? null, $cpu), fn($v) => $v !== null); ?>
         <div><?= gauge_html('CPU avg', $vals ? array_sum($vals) / count($vals) : null, 100, '%', 80, 95) ?></div>
@@ -117,13 +117,13 @@ page_start($dev['name'], 'devices');
   </div>
   <?php endif ?>
   <div class="grid grid-2">
-    <?php if ($cpu): ?><div class="card"><div class="card-head"><h3>CPU</h3></div><div class="chart" data-metrics="<?= $ids($cpu) ?>"></div></div><?php endif ?>
-    <?php if ($load): ?><div class="card"><div class="card-head"><h3>Load average</h3></div><div class="chart" data-metrics="<?= $ids($load) ?>"></div></div><?php endif ?>
-    <?php if ($mem): ?><div class="card"><div class="card-head"><h3>Memory</h3></div><div class="chart" data-metrics="<?= $ids($mem) ?>"></div></div><?php endif ?>
-    <?php if ($sto): ?><div class="card"><div class="card-head"><h3>Storage</h3></div><div class="chart" data-metrics="<?= $ids(array_slice($sto, 0, 6)) ?>"></div></div><?php endif ?>
-    <?php if ($c = $en('custom')): ?><div class="card"><div class="card-head"><h3>Custom</h3></div><div class="chart" data-metrics="<?= $ids(array_slice($c, 0, 6)) ?>"></div></div><?php endif ?>
+    <?php if ($cpu): ?><div class="card"><header class="card-head"><hgroup><h2>CPU</h2></hgroup></header><div class="chart" data-metrics="<?= $ids($cpu) ?>"></div></div><?php endif ?>
+    <?php if ($load): ?><div class="card"><header class="card-head"><hgroup><h2>Load average</h2></hgroup></header><div class="chart" data-metrics="<?= $ids($load) ?>"></div></div><?php endif ?>
+    <?php if ($mem): ?><div class="card"><header class="card-head"><hgroup><h2>Memory</h2></hgroup></header><div class="chart" data-metrics="<?= $ids($mem) ?>"></div></div><?php endif ?>
+    <?php if ($sto): ?><div class="card"><header class="card-head"><hgroup><h2>Storage</h2></hgroup></header><div class="chart" data-metrics="<?= $ids(array_slice($sto, 0, 6)) ?>"></div></div><?php endif ?>
+    <?php if ($c = $en('custom')): ?><div class="card"><header class="card-head"><hgroup><h2>Custom</h2></hgroup></header><div class="chart" data-metrics="<?= $ids(array_slice($c, 0, 6)) ?>"></div></div><?php endif ?>
   </div>
-  <?php if (!$cpu && !$mem && !$sto && !$en('custom')): ?><div class="card empty-state">No system metrics for this device. Check the <a href="<?= $self ?>&tab=interfaces">interfaces</a> or <a href="<?= $self ?>&tab=sensors">sensors</a> tabs.</div><?php endif ?>
+  <?php if (!$cpu && !$mem && !$sto && !$en('custom')): ?><p class="empty">No system metrics for this device. Check the <a href="<?= $self ?>&tab=interfaces">interfaces</a> or <a href="<?= $self ?>&tab=sensors">sensors</a> tabs.</p><?php endif ?>
 
 <?php elseif ($tab === 'live'):
     require_once dirname(__DIR__) . '/live.php';
@@ -134,7 +134,7 @@ page_start($dev['name'], 'devices');
       <span class="live-status" data-live-status>Starting…</span>
       <div class="seg" title="Stream: one long connection (SSE). Poll: a request per sample."><button type="button" data-live-mode="stream">Stream</button><button type="button" data-live-mode="poll">Poll</button></div>
       <div class="seg" title="Seconds between reads"><button type="button" data-live-int="1">1s</button><button type="button" data-live-int="2">2s</button><button type="button" data-live-int="5">5s</button></div>
-      <button type="button" class="btn btn-ghost" data-live-toggle>Pause</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-live-toggle>Pause</button>
     </div>
     <p class="muted small">Read directly from the device and not stored. Shows the last 5 minutes.</p>
     <div class="grid grid-2" data-live-grid></div>
@@ -151,7 +151,7 @@ page_start($dev['name'], 'devices');
         }
     }
 ?>
-  <div class="card flush" style="margin-bottom:16px"><div class="table-wrap"><table class="tbl">
+  <?php if ($ifs): ?><div class="card flush mb"><div class="table-wrap"><table class="tbl">
     <thead><tr><th>Interface</th><th>Status</th><th class="num">In</th><th class="num">Out</th><th class="num">Errors in/out</th></tr></thead>
     <tbody>
     <?php foreach ($ifs as $i):
@@ -162,14 +162,14 @@ page_start($dev['name'], 'devices');
       <tr><td><?= e($i['name']) ?></td><td><span class="pill pill-<?= $lbl === 'up' ? 'up' : ($lbl === 'down' ? 'down' : '') ?>"><?= $lbl ?></span></td>
         <td class="num"><?= $v('if_in') ?>bps</td><td class="num"><?= $v('if_out') ?>bps</td><td class="num"><?= $v('if_err') ?> / <?= $v('if_err_out') ?></td></tr>
     <?php endforeach ?>
-    </tbody></table></div></div>
+    </tbody></table></div></div><?php endif ?>
   <div class="grid grid-2">
   <?php foreach ($ifs as $i): if (empty($i['if_in']['enabled']) && empty($i['if_out']['enabled'])) continue; ?>
-    <div class="card"><div class="card-head"><h3><?= e($i['name']) ?></h3></div>
+    <div class="card"><header class="card-head"><hgroup><h2><?= e($i['name']) ?></h2></hgroup></header>
       <div class="chart" data-metrics="<?= $ids(array_filter([$i['if_in'] ?? null, $i['if_out'] ?? null])) ?>"></div></div>
   <?php endforeach ?>
   </div>
-  <?php if (!$ifs): ?><div class="card empty-state">No interfaces discovered.</div><?php endif ?>
+  <?php if (!$ifs): ?><p class="empty">No interfaces discovered.</p><?php endif ?>
 
 <?php elseif ($tab === 'sensors' || $tab === 'system'): // prom 'system' = load, stats, telemetry, grouped by unit
     $sens = $tab === 'system' ? array_merge($en('cpu'), $en('custom')) : $en('sensor'); $sup = $en('supply'); $pages = $en('pages');
@@ -184,64 +184,71 @@ page_start($dev['name'], 'devices');
     }
 ?>
   <?php if ($sup || $sens): ?>
-  <div class="card" style="margin-bottom:16px">
-    <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(110px,1fr));text-align:center">
+  <div class="card mb">
+    <div class="grid gauge-row">
       <?php foreach ($sup as $m): ?><div><?= gauge_html($m['label'], $last[$m['id']] ?? null, 100, '%', $m['warn'], $m['crit']) ?></div><?php endforeach ?>
       <?php foreach (array_slice($sens, 0, 12) as $m): ?><div><?= gauge_html($m['label'], $last[$m['id']] ?? null, $m['unit'] === '°C' ? 100 : max(1, ($last[$m['id']] ?? 1) * 1.5), $m['unit'], $m['warn'], $m['crit']) ?></div><?php endforeach ?>
     </div>
   </div>
   <?php endif ?>
   <div class="grid grid-2">
-    <?php foreach ($groups as $u => $ms): ?><div class="card"><div class="card-head"><h3>Sensors · <?= e($u) ?></h3></div><div class="chart" data-metrics="<?= $ids(array_slice($ms, 0, 6)) ?>"></div></div><?php endforeach ?>
-    <?php if ($sup): ?><div class="card"><div class="card-head"><h3>Supplies</h3></div><div class="chart" data-metrics="<?= $ids($sup) ?>"></div></div><?php endif ?>
-    <?php if ($pages): ?><div class="card"><div class="card-head"><h3>Pages printed</h3><div class="right"><b><?= e(number_format((float)($last[$pages[0]['id']] ?? 0))) ?></b></div></div><div class="chart" data-metrics="<?= $ids($pages) ?>"></div></div><?php endif ?>
+    <?php foreach ($groups as $u => $ms): ?><div class="card"><header class="card-head"><hgroup><h2>Sensors · <?= e($u) ?></h2></hgroup></header><div class="chart" data-metrics="<?= $ids(array_slice($ms, 0, 6)) ?>"></div></div><?php endforeach ?>
+    <?php if ($sup): ?><div class="card"><header class="card-head"><hgroup><h2>Supplies</h2></hgroup></header><div class="chart" data-metrics="<?= $ids($sup) ?>"></div></div><?php endif ?>
+    <?php if ($pages): ?><div class="card"><header class="card-head"><hgroup><h2>Pages printed</h2></hgroup><b><?= e(number_format((float)($last[$pages[0]['id']] ?? 0))) ?></b></header><div class="chart" data-metrics="<?= $ids($pages) ?>"></div></div><?php endif ?>
   </div>
-  <?php if (!$sens && !$sup && !$pages): ?><div class="card empty-state">No sensors or supplies discovered on this device.</div><?php endif ?>
+  <?php if (!$sens && !$sup && !$pages): ?><p class="empty">No sensors or supplies discovered on this device.</p><?php endif ?>
 
 <?php elseif ($tab === 'metrics'): ?>
-  <form method="post" class="card flush" style="margin-bottom:16px">
+  <form method="post" class="card flush mb">
     <?= csrf_field() ?><input type="hidden" name="act" value="metrics">
-    <div class="card-head" style="padding:14px 16px 0"><h3>All metrics</h3><div class="right"><span class="small muted">If warn &gt; crit, lower values are worse (e.g. toner).</span><button class="btn btn-sm">Save</button></div></div>
+    <header class="card-head"><hgroup><h2>All metrics</h2><p>Up to 3 gauges and one graph show on the overview card. If warn is above crit, lower values are worse (toner).</p></hgroup></header>
     <div class="table-wrap"><table class="tbl">
       <thead><tr><th>On</th><th>Kind</th><th>Label</th><th class="num">Last</th><th title="Gauge on the overview card (max 3)">Gauge</th><th>Min</th><th>Max</th><th title="Graph on the overview card (one)">Graph</th><th>Warn</th><th>Crit</th><th>OID</th><th></th></tr></thead>
       <tbody>
-      <?php foreach ($metrics as $m): $f = "m[{$m['id']}]"; ?>
+      <?php foreach ($metrics as $m): $f = "m[{$m['id']}]"; $al = fn($w) => 'aria-label="' . e($w . ': ' . $m['label']) . '"'; ?>
         <tr>
-          <td><input type="checkbox" class="check" name="<?= $f ?>[enabled]" value="1" <?= $m['enabled'] ? 'checked' : '' ?>></td>
+          <td><input type="checkbox" class="check" name="<?= $f ?>[enabled]" value="1" <?= $m['enabled'] ? 'checked' : '' ?> <?= $al('On') ?>></td>
           <td><span class="pill"><?= e($m['kind']) ?></span></td>
-          <td><input type="text" name="<?= $f ?>[label]" value="<?= e($m['label']) ?>" style="width:220px"></td>
+          <td><input type="text" class="w-label" name="<?= $f ?>[label]" value="<?= e($m['label']) ?>" <?= $al('Label') ?>></td>
           <td class="num"><?= isset($last[$m['id']]) ? e(fmt_unit($last[$m['id']], $m['unit'])) : '—' ?></td>
-          <td><input type="checkbox" class="check" name="<?= $f ?>[gauge]" value="1" <?= $m['ov_gauge'] ? 'checked' : '' ?>></td>
-          <td><input type="number" step="any" name="<?= $f ?>[gmin]" value="<?= e($m['g_min']) ?>" placeholder="auto" title="Gauge minimum"></td>
-          <td><input type="number" step="any" name="<?= $f ?>[gmax]" value="<?= e($m['g_max']) ?>" placeholder="auto" title="Gauge maximum"></td>
-          <td><input type="radio" name="graph" value="<?= $m['id'] ?>" <?= $m['ov_graph'] ? 'checked' : '' ?>></td>
-          <td><input type="number" step="any" name="<?= $f ?>[warn]" value="<?= e($m['warn']) ?>"></td>
-          <td><input type="number" step="any" name="<?= $f ?>[crit]" value="<?= e($m['crit']) ?>"></td>
+          <td><input type="checkbox" class="check" name="<?= $f ?>[gauge]" value="1" <?= $m['ov_gauge'] ? 'checked' : '' ?> <?= $al('Gauge') ?>></td>
+          <td><input type="number" step="any" name="<?= $f ?>[gmin]" value="<?= e($m['g_min']) ?>" placeholder="auto" <?= $al('Gauge minimum') ?>></td>
+          <td><input type="number" step="any" name="<?= $f ?>[gmax]" value="<?= e($m['g_max']) ?>" placeholder="auto" <?= $al('Gauge maximum') ?>></td>
+          <td><input type="radio" name="graph" value="<?= $m['id'] ?>" <?= $m['ov_graph'] ? 'checked' : '' ?> <?= $al('Graph') ?>></td>
+          <td><input type="number" step="any" name="<?= $f ?>[warn]" value="<?= e($m['warn']) ?>" <?= $al('Warn') ?>></td>
+          <td><input type="number" step="any" name="<?= $f ?>[crit]" value="<?= e($m['crit']) ?>" <?= $al('Crit') ?>></td>
           <td class="mono muted small"><?= e($m['oid']) ?></td>
-          <td><button class="btn btn-ghost btn-sm" form="del<?= $m['id'] ?>" title="Delete metric and its history">✕</button></td>
+          <td><button class="btn btn-quiet btn-sm" form="del<?= $m['id'] ?>" title="Delete metric and its history" aria-label="Delete <?= e($m['label']) ?>">✕</button></td>
         </tr>
       <?php endforeach ?>
       </tbody></table></div>
+    <?php if (!$metrics): ?><p class="empty">No metrics yet. Run discovery below.</p><?php endif ?>
+    <?php if ($metrics): ?><footer><button class="btn">Save</button></footer><?php endif ?>
   </form>
   <?php foreach ($metrics as $m): ?><form id="del<?= $m['id'] ?>" method="post" data-confirm="Delete this metric and all its history?" class="inline"><?= csrf_field() ?><input type="hidden" name="act" value="delete_metric"><input type="hidden" name="mid" value="<?= $m['id'] ?>"></form><?php endforeach ?>
   <div class="grid grid-2">
-    <?php if (!$prom): ?><form method="post" class="card">
+    <?php if (!$prom): ?><form method="post" class="card" data-busy>
       <?= csrf_field() ?><input type="hidden" name="act" value="custom">
-      <h3>Add custom OID</h3>
+      <header class="card-head"><hgroup><h2>Add custom OID</h2><p>The device is asked for the OID once before it is added.</p></hgroup></header>
       <div class="form-grid">
-        <div class="field"><label>OID</label><input type="text" name="oid" required placeholder="1.3.6.1.4.1.2021.4.6.0" class="mono"></div>
-        <div class="field"><label>Label</label><input type="text" name="label" placeholder="Free memory"></div>
-        <div class="field"><label>Type</label><select name="type"><option value="gauge">Gauge (value as-is)</option><option value="counter">Counter (rate per second)</option></select></div>
-        <div class="field"><label>Unit</label><input type="text" name="unit" placeholder="kB, °C, bps…"></div>
-        <div class="field"><label>Scale</label><input type="number" step="any" name="scale" value="1"><div class="hint">Multiplier applied to the value (e.g. 8 for bytes → bits).</div></div>
+        <div class="field"><label>OID
+          <input type="text" name="oid" required placeholder="1.3.6.1.4.1.2021.4.6.0" class="mono"></label></div>
+        <div class="field"><label>Label
+          <input type="text" name="label" placeholder="Free memory"><small>Left empty, the OID is the label.</small></label></div>
+        <div class="field"><label>Type
+          <select name="type"><option value="gauge">Gauge</option><option value="counter">Counter</option></select>
+          <small>A gauge is stored as read; a counter as a rate per second.</small></label></div>
+        <div class="field"><label>Unit
+          <input type="text" name="unit" placeholder="kB"></label></div>
+        <div class="field"><label>Scale
+          <input type="number" step="any" name="scale" value="1"><small>Multiplies the value: 8 turns bytes into bits.</small></label></div>
       </div>
-      <button class="btn">Add metric</button>
+      <footer><button class="btn">Add metric</button></footer>
     </form><?php endif ?>
-    <form method="post" class="card">
+    <form method="post" class="card" data-busy>
       <?= csrf_field() ?><input type="hidden" name="act" value="discover">
-      <h3>Rediscover</h3>
-      <p class="muted"><?= $prom ? 'Fetch the metrics page again and add any new series.' : 'Walk the device again and add any new interfaces, storage, sensors or supplies.' ?> Existing metrics and your edits are kept.</p>
-      <button class="btn btn-ghost">Run discovery</button>
+      <header class="card-head"><hgroup><h2>Rediscover</h2><p><?= $prom ? 'Fetch the metrics page again and add any new series.' : 'Walk the device again and add any new interfaces, storage, sensors or supplies.' ?> Existing metrics and your edits are kept.</p></hgroup></header>
+      <footer><button class="btn">Run discovery</button></footer>
     </form>
   </div>
 

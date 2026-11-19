@@ -44,32 +44,36 @@ $dash = db_all('SELECT * FROM dashboards ORDER BY name');
 $devs = db_all('SELECT id, name FROM devices ORDER BY name');
 page_start('Dashboards', 'dashboards');
 ?>
-<div class="page-head"><div><h1>Dashboards</h1><div class="sub">Arrange graphs, gauges and stats; optionally share on the public page.</div></div></div>
+<div class="page-head"><hgroup><h1>Dashboards</h1><p>Arrange graphs, gauges and stats; share one on the public page if you like.</p></hgroup></div>
 <?= flash() ?>
-<div class="grid grid-auto" style="margin-bottom:20px">
+<?php if (!$dash): ?><p class="empty mb">No dashboards yet. Create one below.</p><?php endif ?>
+<div class="grid grid-auto mb">
 <?php foreach ($dash as $d): $n = count(json_decode($d['layout_json'], true) ?: []); ?>
   <div class="card">
-    <div class="card-head"><h3><a href="app.php?p=dashboard&id=<?= $d['id'] ?>"><?= e($d['name']) ?></a></h3><div class="right"><?= $d['public'] ? '<span class="pill pill-accent">public</span>' : '' ?></div></div>
-    <p class="muted small"><?= $n ?> panel<?= $n === 1 ? '' : 's' ?></p>
-    <form method="post" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <header class="card-head"><hgroup><h2><a href="app.php?p=dashboard&id=<?= $d['id'] ?>"><?= e($d['name']) ?></a></h2><p><?= $n ?> panel<?= $n === 1 ? '' : 's' ?></p></hgroup>
+      <?php if ($d['public']): ?><div class="actions"><span class="pill pill-accent">public</span></div><?php endif ?></header>
+    <form method="post" class="inline-form">
       <?= csrf_field() ?><input type="hidden" name="act" value="update"><input type="hidden" name="id" value="<?= $d['id'] ?>">
-      <input type="text" name="name" value="<?= e($d['name']) ?>" style="flex:1;min-width:140px">
-      <label class="check" style="margin:0"><input type="checkbox" name="public" value="1" <?= $d['public'] ? 'checked' : '' ?>> Public</label>
-      <button class="btn btn-ghost btn-sm" form="deld<?= $d['id'] ?>">Delete</button>
+      <input type="text" class="input-sm" name="name" value="<?= e($d['name']) ?>" aria-label="Name">
+      <label class="check"><input type="checkbox" name="public" value="1" <?= $d['public'] ? 'checked' : '' ?>> Public</label>
+      <button class="btn btn-ghost btn-danger btn-sm" form="deld<?= $d['id'] ?>">Delete</button>
       <button class="btn btn-sm">Save</button>
     </form>
     <form id="deld<?= $d['id'] ?>" method="post" data-confirm="Delete dashboard “<?= e($d['name']) ?>”?"><?= csrf_field() ?><input type="hidden" name="act" value="delete"><input type="hidden" name="id" value="<?= $d['id'] ?>"></form>
   </div>
 <?php endforeach ?>
 </div>
-<form method="post" class="card" style="max-width:640px">
+<form method="post" class="card narrow">
   <?= csrf_field() ?><input type="hidden" name="act" value="create">
-  <h3>New dashboard</h3>
+  <header class="card-head"><hgroup><h2>New dashboard</h2></hgroup></header>
   <div class="form-grid">
-    <div class="field"><label>Name</label><input type="text" name="name" required placeholder="Lab overview"></div>
-    <div class="field"><label>Start from device (optional)</label><select name="device"><option value="">Empty</option><?php foreach ($devs as $d): ?><option value="<?= $d['id'] ?>"><?= e($d['name']) ?></option><?php endforeach ?></select></div>
+    <div class="field"><label>Name
+      <input type="text" name="name" required placeholder="Lab overview"></label></div>
+    <div class="field"><label>Start from
+      <select name="device"><option value="">Empty</option><?php foreach ($devs as $d): ?><option value="<?= $d['id'] ?>"><?= e($d['name']) ?></option><?php endforeach ?></select>
+      <small>Optional. A device fills it with its CPU, memory and traffic.</small></label></div>
   </div>
-  <button class="btn">Create</button>
+  <footer><button class="btn">Create</button></footer>
 </form>
 <?php
 page_end();

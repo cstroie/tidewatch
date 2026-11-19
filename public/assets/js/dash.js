@@ -15,8 +15,7 @@
     root.innerHTML = '';
     root.classList.toggle('editing', editing);
     if (!layout.length) {
-      root.appendChild(h('div', 'card empty-state', editing ? 'Empty dashboard. Click <b>+ Panel</b> to add one.' : 'This dashboard is empty.'));
-      root.firstChild.style.gridColumn = 'span 12';
+      root.appendChild(h('p', 'empty', editing ? 'Empty dashboard. Click <b>Add panel</b> to add one.' : 'This dashboard is empty.'));
     }
     layout.forEach(function (p, i) { root.appendChild(panel(p, i)); });
   }
@@ -30,7 +29,7 @@
     [['✎', 'Edit', function () { openDialog(i); }], ['−', 'Narrower', function () { p.w = Math.max(1, (p.w || 6) - 1); render(); }],
      ['+', 'Wider', function () { p.w = Math.min(12, (p.w || 6) + 1); render(); }], ['↑', 'Shorter', function () { p.h = Math.max(1, (p.h || 3) - 1); render(); }],
      ['↓', 'Taller', function () { p.h = Math.min(8, (p.h || 3) + 1); render(); }], ['✕', 'Remove', function () { layout.splice(i, 1); render(); }]
-    ].forEach(function (t) { var b = h('button', null, t[0]); b.type = 'button'; b.title = t[1]; b.onclick = t[2]; tools.appendChild(b); });
+    ].forEach(function (t) { var b = h('button', null, t[0]); b.type = 'button'; b.title = t[1]; b.setAttribute('aria-label', t[1]); b.onclick = t[2]; tools.appendChild(b); });
     title.appendChild(tools);
     el.appendChild(title);
     var body = h('div', 'p-body');
@@ -47,21 +46,20 @@
       if (p.metrics && p.metrics.length) requestAnimationFrame(function () { TW.chart(c); });
       else c.innerHTML = '<div class="empty">No metrics selected</div>';
     } else if (p.type === 'gauge' || p.type === 'stat') {
-      body.style.display = 'grid'; body.style.placeItems = 'center';
+      body.classList.add('is-center');
       var holder = h('div', p.type === 'gauge' ? 'gauge' : 'big', '—');
-      if (p.type === 'gauge') holder.style.width = '100%';
       body.appendChild(holder);
       var sub = h('div', 'small muted'); body.appendChild(sub);
       var upd = function () { updateValue(p, holder, sub); };
       upd(); timers.push(setInterval(upd, 20000));
     } else if (p.type === 'status') {
-      var list = h('div', null); list.style.overflow = 'auto'; list.style.height = '100%';
+      var list = h('div', 'status-list');
       body.appendChild(list);
       var st = function () {
         TW.get(api + '?a=status').then(function (r) {
           list.innerHTML = r.devices.map(function (d) {
-            return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0"><span class="dot dot-' + esc(d.status) + '"></span>' + esc(d.name) + '<span class="pill pill-' + esc(d.status) + '" style="margin-left:auto">' + esc(d.status) + '</span></div>';
-          }).join('') || '<div class="muted small">No devices</div>';
+            return '<div><span class="dot dot-' + esc(d.status) + '"></span>' + esc(d.name) + '<span class="pill pill-' + esc(d.status) + '">' + esc(d.status) + '</span></div>';
+          }).join('') || '<p class="empty">No devices.</p>';
         });
       };
       st(); timers.push(setInterval(st, 20000));

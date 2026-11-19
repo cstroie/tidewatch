@@ -59,7 +59,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $set = implode(', ', array_map(fn($k) => "$k = ?", array_keys($row)));
             db_exec("UPDATE devices SET $set WHERE id = ?", [...array_values($row), $id]);
             $st = poll_now($id);
-            flash('Device saved' . ($st ? "; polled, status: $st" : '') . '.', $st === 'down' ? 'err' : 'ok');
+            flash('Device saved' . ($st ? "; polled, status: $st" : '') . '.', $st === 'down' ? 'warn' : 'ok');
             redirect("app.php?p=device&id=$id&tab=settings");
         }
         db_exec('INSERT INTO devices (' . implode(',', array_keys($row)) . ') VALUES (' . implode(',', array_fill(0, count($row), '?')) . ')', array_values($row));
@@ -82,7 +82,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $type = 'ok';
         }
         $st = poll_now($id);
-        flash($msg . ($st ? "; polled, status: $st" : '') . '.', $st === 'down' ? 'err' : $type);
+        flash($msg . ($st ? "; polled, status: $st" : '') . '.', $st === 'down' && $type === 'ok' ? 'warn' : $type);
         redirect("app.php?p=device&id=$id&tab=metrics");
     }
     if ($act === 'delete' && $id) {
@@ -101,16 +101,17 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 $devices = db_all('SELECT d.*, (SELECT COUNT(*) FROM metrics m WHERE m.device_id = d.id) nm FROM devices d ORDER BY d.name');
 page_start('Devices', 'devices');
 ?>
-<div class="page-head"><div><h1>Devices</h1><div class="sub"><?= count($devices) ?> configured</div></div>
-  <div class="actions"><a class="btn btn-sm" href="app.php?p=device_add">+ Add device</a></div></div>
+<div class="page-head"><hgroup><h1>Devices</h1><p><?= count($devices) ?> configured</p></hgroup>
+  <div class="actions"><a class="btn btn-sm" href="app.php?p=device_add">Add device</a></div></div>
 <?= flash() ?>
-<div class="card flush" style="margin-bottom:20px"><div class="table-wrap"><table class="tbl">
+<div class="card flush mb">
+<?php if ($devices): ?><div class="table-wrap"><table class="tbl">
   <thead><tr><th></th><th>Name</th><th>Host</th><th>Type</th><th class="num">Metrics</th><th>Uptime</th><th>Last poll</th><th>Public</th></tr></thead>
   <tbody>
   <?php foreach ($devices as $d): ?>
-    <tr style="<?= $d['enabled'] ? '' : 'opacity:.5' ?>">
+    <tr class="<?= $d['enabled'] ? '' : 'is-disabled' ?>">
       <td><?= device_badge($d['enabled'] ? $d : ['status' => 'unknown'] + $d, 'sm') ?></td>
-      <td><a href="app.php?p=device&id=<?= $d['id'] ?>"><b><?= e($d['name']) ?></b></a><div class="small muted" style="max-width:320px;overflow:hidden;text-overflow:ellipsis"><?= e($d['sysdescr']) ?></div><?php if (!empty($d['syslocation'])): ?><div class="small muted"><?= e($d['syslocation']) ?></div><?php endif ?></td>
+      <td><a href="app.php?p=device&id=<?= $d['id'] ?>"><b><?= e($d['name']) ?></b></a><div class="small muted desc"><?= e($d['sysdescr']) ?></div><?php if (!empty($d['syslocation'])): ?><div class="small muted"><?= e($d['syslocation']) ?></div><?php endif ?></td>
       <td class="mono"><?= e($d['host']) ?><?= (int)$d['port'] !== (($d['type'] ?? 'snmp') === 'prom' ? 80 : 161) ? ':' . (int)$d['port'] : '' ?></td>
       <td><?= ($d['type'] ?? 'snmp') === 'prom' ? 'Prometheus' : 'v' . e($d['version']) ?></td>
       <td class="num"><?= (int)$d['nm'] ?></td>
@@ -119,7 +120,8 @@ page_start('Devices', 'devices');
       <td><?= $d['public'] ? '<span class="pill pill-accent">public</span>' : '' ?></td>
     </tr>
   <?php endforeach ?>
-  <?php if (!$devices): ?><tr><td colspan="8" class="muted" style="text-align:center;padding:30px">No devices yet. <a href="app.php?p=device_add">Add one</a>.</td></tr><?php endif ?>
-  </tbody></table></div></div>
+  </tbody></table></div>
+<?php else: ?><p class="empty">No devices yet. <a href="app.php?p=device_add">Add one</a>.</p><?php endif ?>
+</div>
 <?php
 page_end();
